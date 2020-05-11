@@ -67,6 +67,7 @@ subprojects { Project subproject ->
       rejectVersionIf { mod ->
         mod.candidate.version ==~ /.+[RC|M]\d.*/ || ["alpha", "beta"].any { mod.candidate.version.toLowerCase(Locale.ENGLISH).contains(it) }
       }
+      outputFormatter = 'json'
     }
 
     bintray.publish = true
