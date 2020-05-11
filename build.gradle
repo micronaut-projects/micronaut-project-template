@@ -13,6 +13,7 @@ buildscript {
         classpath "io.micronaut.docs:micronaut-docs-gradle-plugins:$micronautDocsVersion"
         classpath "io.spring.nohttp:nohttp-gradle:0.0.4.RELEASE"
         classpath "com.github.jengelman.gradle.plugins:shadow:5.1.0"
+        classpath "com.github.ben-manes:gradle-versions-plugin:0.28.0"
     }
 }
 
@@ -45,6 +46,8 @@ subprojects { Project subproject ->
     apply plugin:"java-library"
     apply plugin: 'idea'
     apply plugin: 'checkstyle'
+    apply plugin: "com.github.ben-manes.versions"
+
     apply from: rootProject.file('gradle/license.gradle')
 
     sourceCompatibility = '1.8'
@@ -58,6 +61,12 @@ subprojects { Project subproject ->
             attributes('Implementation-Version': projectVersion)
             attributes('Implementation-Title': title)
         }
+    }
+
+    dependencyUpdates {      
+      rejectVersionIf { mod ->
+        mod.candidate.version ==~ /.+[RC|M]\d.*/ || ["alpha", "beta"].any { mod.candidate.version.toLowerCase(Locale.ENGLISH).contains(it) }
+      }
     }
 
     bintray.publish = true
