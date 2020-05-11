@@ -68,4 +68,5 @@ jobs:
           # Refers to the key in the BOM (gradle.properties)
           properties: | 
             micronautXXXVersion=${{ steps.release_version.outputs.release_version }} 
+          version: ${{ steps.release_version.outputs.release_version }} 
           
