@@ -81,13 +81,13 @@ subprojects { Project subproject ->
                   println "     ${dep.projectUrl}"
                 }
               }
-            }            
-            throw new GradleException('Abort, there are dependencies to update.')
+              throw new GradleException('Abort, there are dependencies to update.')
+            }                        
         }
       }
     }
     check.dependsOn('dependencyUpdates')
-    
+
     bintray.publish = true
 
     tasks.withType(Test) {
