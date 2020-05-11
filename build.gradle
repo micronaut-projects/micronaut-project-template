@@ -63,15 +63,13 @@ subprojects { Project subproject ->
         }
     }
 
-
     dependencyUpdates {      
       rejectVersionIf { mod ->
-        mod.candidate.version ==~ /.+[RC|M]\d.*/ || 
-            ["alpha", "beta"].any { mod.candidate.version.toLowerCase(Locale.ENGLISH).contains(it) } ||
+        mod.candidate.version ==~ /.+-(b|M|RC)\d.*/ ||
+            ["alpha", "beta", "milestone"].any { mod.candidate.version.toLowerCase(Locale.ENGLISH).contains(it) } ||
              mod.candidate.group == 'io.micronaut' // managed by the micronaut version
       }
       outputFormatter = { result ->
-        println "$result.outdated.dependencies"
         if (!result.outdated.dependencies.isEmpty()) {
             def upgradeVersions = result.outdated.dependencies
             if (!upgradeVersions.isEmpty()) {
@@ -88,6 +86,7 @@ subprojects { Project subproject ->
         }
       }
     }
+    check.dependsOn('dependencyUpdates')
     
     bintray.publish = true
 
