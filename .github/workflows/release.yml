@@ -42,12 +42,8 @@ jobs:
           GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
           GPG_PASSWORD: ${{ secrets.GPG_PASSWORD }}
           GPG_FILE: ${{ secrets.GPG_FILE }}
-        run: echo $GPG_FILE | base64 -d > secring.gpg && ./gradlew publish closeAndReleaseRepository          
-      - name: Run post-release
-        if: success()
-        uses: micronaut-projects/github-actions/post-release@master
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+        run: echo $GPG_FILE | base64 -d > secring.gpg && ./gradlew publish closeAndReleaseRepository
+        continue-on-error: true
       - name: Checkout micronaut-core
         uses: actions/checkout@v2
         with:
@@ -55,7 +51,7 @@ jobs:
           repository: micronaut-projects/micronaut-core
           ref: master # Or 1.3.x etc
           path: micronaut-core # Must be micronaut-core
-
+        continue-on-error: true          
       - name: Update BOM
         uses: micronaut-projects/github-actions/update-bom@master
         with:
@@ -65,4 +61,11 @@ jobs:
           properties: |
             micronautXXXVersion=${{ steps.release_version.outputs.release_version }} 
           version: ${{ steps.release_version.outputs.release_version }} 
+        continue-on-error: true
+      - name: Run post-release
+        if: success()
+        uses: micronaut-projects/github-actions/post-release@master
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
           
