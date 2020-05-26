@@ -20,3 +20,4 @@ jobs:
             ^\.github\/workflows\/label-sync\.yml$
           TARGET_REPOS: |-
             micronaut-projects/micronaut-rabbitmq
+
