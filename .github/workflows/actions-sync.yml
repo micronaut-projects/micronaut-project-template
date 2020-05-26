@@ -1,0 +1,22 @@
+name: Actions sync
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/actions-sync.yml"
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: adrianjost/files-sync-action@v1.0.1
+        with:
+          COMMIT_MESSAGE: Update GitHub Actions
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          FILE_PATTERNS: |-
+            ^\.github\/workflows\/central-sync\.yml$
+            ^\.github\/workflows\/dependency-check\.yml$
+            ^\.github\/workflows\/gradle\.yml$
+            ^\.github\/workflows\/label-sync\.yml$
+          TARGET_REPOS: |-
+            micronaut-projects/micronaut-rabbitmq
