@@ -16,10 +16,11 @@ jobs:
           GIT_USERNAME: micronaut-build
           GIT_EMAIL: "micronaut-build@users.noreply.github.com"
           FILE_PATTERNS: |-
-            ^\.github\/actions-sync\/central-sync\.yml$
+            ^\.github\/workflows\/central-sync\.yml$
             ^\.github\/workflows\/dependency-check\.yml$
             ^\.github\/workflows\/gradle\.yml$
             ^\.github\/workflows\/label-sync\.yml$
+            ^\.github\/workflows\/release-notes\.yml$
           TARGET_REPOS: |-
             micronaut-projects/micronaut-rabbitmq
 
