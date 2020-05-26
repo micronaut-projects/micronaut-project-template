@@ -21,6 +21,7 @@ jobs:
             ^\.github\/workflows\/gradle\.yml$
             ^\.github\/workflows\/label-sync\.yml$
             ^\.github\/workflows\/release-notes\.yml$
+            ^\.github\/workflows\/release\.yml$
           TARGET_REPOS: |-
             micronaut-projects/micronaut-rabbitmq
 
