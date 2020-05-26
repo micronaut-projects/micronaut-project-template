@@ -5,6 +5,7 @@ on:
       - master
     paths:
       - ".github/workflows/actions-sync.yml"
+      - ".github/actions-sync/**"
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -13,11 +14,10 @@ jobs:
         with:
           COMMIT_MESSAGE: Update GitHub Actions
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GIT_USERNAME: micronaut-build
+          GIT_EMAIL: "micronaut-build@users.noreply.github.com"
           FILE_PATTERNS: |-
-            ^\.github\/workflows\/central-sync\.yml$
-            ^\.github\/workflows\/dependency-check\.yml$
-            ^\.github\/workflows\/gradle\.yml$
-            ^\.github\/workflows\/label-sync\.yml$
+            ^\.github\/actions-sync\/.*
           TARGET_REPOS: |-
             micronaut-projects/micronaut-rabbitmq
 
