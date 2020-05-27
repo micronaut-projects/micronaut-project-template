@@ -24,7 +24,7 @@ jobs:
             ^\.github\/workflows\/release-notes\.yml$
           TARGET_REPOS: |-
             micronaut-projects/micronaut-rabbitmq
-#            micronaut-projects/micronaut-sql
+            micronaut-projects/micronaut-sql
 
   sync-release:
     runs-on: ubuntu-latest
