@@ -13,6 +13,4 @@ jobs:
       - name: Echo env
         run: set
       - name: Echo env
-        run: echo $PROPERTIES; set
-        env:
-          PROPERTIES: {{ env }}
+        run: echo $title
