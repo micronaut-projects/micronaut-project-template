@@ -11,6 +11,8 @@ jobs:
       - name: Export Gradle Properties
         uses: micronaut-projects/github-actions/export-gradle-properties@master
       - name: Echo env
+        run: set
+      - name: Echo env
         run: echo $PROPERTIES; set
-        with:
+        env:
           PROPERTIES: {{ env }}

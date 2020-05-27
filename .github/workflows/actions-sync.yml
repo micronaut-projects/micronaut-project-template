@@ -6,10 +6,11 @@ on:
     paths:
       - ".github/workflows/**"
 jobs:
-  sync:
+
+  sync-workflows:
     runs-on: ubuntu-latest
     steps:
-      - uses: adrianjost/files-sync-action@v1.0.1
+      - uses: adrianjost/files-sync-action@v1.1.0
         with:
           COMMIT_MESSAGE: "Update GitHub Actions"
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -21,7 +22,20 @@ jobs:
             ^\.github\/workflows\/gradle\.yml$
             ^\.github\/workflows\/label-sync\.yml$
             ^\.github\/workflows\/release-notes\.yml$
+          TARGET_REPOS: |-
+            micronaut-projects/micronaut-rabbitmq
+#            micronaut-projects/micronaut-sql
+
+  sync-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: adrianjost/files-sync-action@v1.1.0
+        with:
+          COMMIT_MESSAGE: "Update GitHub Actions"
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GIT_USERNAME: micronaut-build
+          GIT_EMAIL: "micronaut-build@users.noreply.github.com"
+          FILE_PATTERNS: |-
             ^\.github\/workflows\/release\.yml$
           TARGET_REPOS: |-
             micronaut-projects/micronaut-rabbitmq
-
