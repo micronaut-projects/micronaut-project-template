@@ -12,11 +12,8 @@ on:
   schedule:
     - cron: '0 8 * * *'
 jobs:
-  build:
+  check-dependencies:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        java: ['8']
     steps:
       - uses: actions/checkout@v2
       - uses: actions/cache@v1
@@ -28,6 +25,7 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v1
         with:
-          java-version: ${{ matrix.java }}
+          java-version: 1.8
+          ref: ${{ github.head_ref }}
       - name: Check Dependencies
         run: ./gradlew dependencyUpdates

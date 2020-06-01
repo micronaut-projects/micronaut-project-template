@@ -7,16 +7,13 @@
 # https://github.com/micronaut-projects/micronaut-build/actions?query=workflow%3A%22Actions+sync%22
 #
 # and restart the latest job.
-name: Updates Dependencies
+name: Update Dependencies
 on:
   schedule:
     - cron: '0 8 * * *'
 jobs:
-  build:
+  dependency-updates:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        java: ['8']
     steps:
       - uses: actions/checkout@v2
       - uses: actions/cache@v1
@@ -28,7 +25,8 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v1
         with:
-          java-version: ${{ matrix.java }}
+          java-version: 1.8
+          ref: ${{ github.head_ref }}
       - name: Export Gradle Properties
         uses: micronaut-projects/github-actions/export-gradle-properties@master
       - name: Check Dependencies
@@ -39,5 +37,6 @@ jobs:
           token: ${{ secrets.GH_TOKEN }}
           commit-message: Update dependencies
           title: 'Dependency upgrades'
+          body: Upgrades dependencies to their latest versions
           labels: "type: dependency-upgrade"
-          branch: ${{ env.githubBranch }}
+          base: ${{ env.githubBranch }}
