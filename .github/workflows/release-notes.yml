@@ -19,6 +19,7 @@ on:
   push:
     branches:
       - master
+      - '[1-9]+.[0-9]+.x'
     paths:
       - ".github/workflows/release-notes.yml"
 jobs:
@@ -30,6 +31,8 @@ jobs:
         uses: micronaut-projects/github-actions/export-gradle-properties@master
       - uses: micronaut-projects/github-actions/release-notes@master
         id: release_notes
+        with:
+          branch: ${{ env.githubBranch }}
       - uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
