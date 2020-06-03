@@ -14,7 +14,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           GIT_USERNAME: micronaut-build
           GIT_EMAIL: "micronaut-build@users.noreply.github.com"
-          SRC_REPO: micronaut-projects/micronaut-project-template
           FILE_PATTERNS: |-
             ^\.github\/workflows\/central-sync\.yml$
             ^\.github\/workflows\/dependency-check\.yml$
