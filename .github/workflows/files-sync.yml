@@ -50,6 +50,7 @@ jobs:
             micronaut-projects/micronaut-rxjava1
             micronaut-projects/micronaut-rxjava3
             micronaut-projects/micronaut-servlet
+            micronaut-projects/micronaut-spring
             micronaut-projects/micronaut-sql
             micronaut-projects/micronaut-test
             micronaut-projects/micronaut-openapi
@@ -76,6 +77,5 @@ jobs:
 #            micronaut-projects/micronaut-ratelimiter
 #            micronaut-projects/micronaut-redis
 #            micronaut-projects/micronaut-security
-#            micronaut-projects/micronaut-spring
 #            micronaut-projects/micronaut-views
 
