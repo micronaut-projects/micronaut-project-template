@@ -46,6 +46,7 @@ jobs:
             micronaut-projects/micronaut-servlet
             micronaut-projects/micronaut-sql
             micronaut-projects/micronaut-test
+            micronaut-projects/micronaut-openapi
 
 # Pending repos:
 #            micronaut-projects/micronaut-rss
@@ -69,8 +70,7 @@ jobs:
 #            micronaut-projects/micronaut-jms
 #            micronaut-projects/micronaut-kubernetes
 #            micronaut-projects/micronaut-neo4j
-#            micronaut-projects/micronaut-oauth2
-#            micronaut-projects/micronaut-openapi
+#            micronaut-projects/micronaut-oauth2            
 #            micronaut-projects/micronaut-picocli
 #            micronaut-projects/micronaut-ratelimiter
 #            micronaut-projects/micronaut-redis
