@@ -45,6 +45,9 @@ jobs:
             micronaut-projects/micronaut-nats
             micronaut-projects/micronaut-netflix
             micronaut-projects/micronaut-rabbitmq
+            micronaut-projects/micronaut-reactor
+            micronaut-projects/micronaut-rxjava1
+            micronaut-projects/micronaut-rxjava3
             micronaut-projects/micronaut-servlet
             micronaut-projects/micronaut-sql
             micronaut-projects/micronaut-test
@@ -65,7 +68,6 @@ jobs:
 #            micronaut-projects/micronaut-graphql
 #            micronaut-projects/micronaut-hibernate-validator
 #            micronaut-projects/micronaut-jackson-xml
-#            micronaut-projects/micronaut-reactor
 #            micronaut-projects/micronaut-jms
 #            micronaut-projects/micronaut-kubernetes
 #            micronaut-projects/micronaut-neo4j
@@ -73,8 +75,6 @@ jobs:
 #            micronaut-projects/micronaut-picocli
 #            micronaut-projects/micronaut-ratelimiter
 #            micronaut-projects/micronaut-redis
-#            micronaut-projects/micronaut-rxjava3
-#            micronaut-projects/micronaut-rxjava1
 #            micronaut-projects/micronaut-security
 #            micronaut-projects/micronaut-spring
 #            micronaut-projects/micronaut-views
