@@ -38,6 +38,7 @@ jobs:
             micronaut-projects/micronaut-gcp
             micronaut-projects/micronaut-groovy
             micronaut-projects/micronaut-grpc
+            micronaut-projects/micronaut-jaxrs
             micronaut-projects/micronaut-kafka
             micronaut-projects/micronaut-kotlin
             micronaut-projects/micronaut-micrometer
@@ -58,7 +59,6 @@ jobs:
 # Pending repos:
 #            micronaut-projects/micronaut-rss
 #            micronaut-projects/micronaut-liquibase
-#            micronaut-projects/micronaut-jaxrs
 #            micronaut-projects/micronaut-jmx
 #            micronaut-projects/micronaut-acme
 #            micronaut-projects/micronaut-aws
