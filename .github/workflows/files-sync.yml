@@ -43,6 +43,7 @@ jobs:
             micronaut-projects/micronaut-micrometer
             micronaut-projects/micronaut-mongodb
             micronaut-projects/micronaut-nats
+            micronaut-projects/micronaut-neo4j
             micronaut-projects/micronaut-netflix
             micronaut-projects/micronaut-rabbitmq
             micronaut-projects/micronaut-reactor
@@ -70,7 +71,6 @@ jobs:
 #            micronaut-projects/micronaut-jackson-xml
 #            micronaut-projects/micronaut-jms
 #            micronaut-projects/micronaut-kubernetes
-#            micronaut-projects/micronaut-neo4j
 #            micronaut-projects/micronaut-oauth2            
 #            micronaut-projects/micronaut-picocli
 #            micronaut-projects/micronaut-ratelimiter
