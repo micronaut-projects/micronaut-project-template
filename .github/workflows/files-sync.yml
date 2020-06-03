@@ -55,6 +55,7 @@ jobs:
             micronaut-projects/micronaut-sql
             micronaut-projects/micronaut-test
             micronaut-projects/micronaut-openapi
+            micronaut-projects/micronaut-views
 
 # Pending repos:
 #            micronaut-projects/micronaut-rss
@@ -77,5 +78,4 @@ jobs:
 #            micronaut-projects/micronaut-ratelimiter
 #            micronaut-projects/micronaut-redis
 #            micronaut-projects/micronaut-security
-#            micronaut-projects/micronaut-views
 
