@@ -34,6 +34,7 @@ jobs:
           TARGET_REPOS: |-
             micronaut-projects/micronaut-azure
             micronaut-projects/micronaut-data
+            micronaut-projects/micronaut-flyway
             micronaut-projects/micronaut-gcp
             micronaut-projects/micronaut-groovy
             micronaut-projects/micronaut-grpc
@@ -61,7 +62,6 @@ jobs:
 #            micronaut-projects/micronaut-couchbase
 #            micronaut-projects/micronaut-core
 #            micronaut-projects/micronaut-elasticsearch
-#            micronaut-projects/micronaut-flyway
 #            micronaut-projects/micronaut-graphql
 #            micronaut-projects/micronaut-hibernate-validator
 #            micronaut-projects/micronaut-jackson-xml
