@@ -37,6 +37,7 @@ jobs:
             micronaut-projects/micronaut-data
             micronaut-projects/micronaut-gcp
             micronaut-projects/micronaut-groovy
+            micronaut-projects/micronaut-grpc
             micronaut-projects/micronaut-kafka
             micronaut-projects/micronaut-kotlin
             micronaut-projects/micronaut-micrometer
@@ -63,7 +64,6 @@ jobs:
 #            micronaut-projects/micronaut-elasticsearch
 #            micronaut-projects/micronaut-flyway
 #            micronaut-projects/micronaut-graphql
-#            micronaut-projects/micronaut-grpc
 #            micronaut-projects/micronaut-hibernate-validator
 #            micronaut-projects/micronaut-jackson-xml
 #            micronaut-projects/micronaut-reactor
