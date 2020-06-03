@@ -52,7 +52,7 @@ Once you are satisfied with your changes:
 
 We want to keep the code clean, following good practices about organization, javadoc and style as much as possible. 
 
-Micronaut Data uses [Checkstyle](http://checkstyle.sourceforge.net/) to make sure that all the code follows those standards. The configuration file is defined in `config/checkstyle/checkstyle.xml` and to execute the Checkstyle you
+Micronaut Data uses [Checkstyle](https://checkstyle.sourceforge.io/) to make sure that all the code follows those standards. The configuration file is defined in `config/checkstyle/checkstyle.xml` and to execute the Checkstyle you
 need to run:
  
 ```
