@@ -4,6 +4,7 @@ on: [push, pull_request]
 #    - cron: '0 0 * * MON'
 jobs:
   update-wrapper:
+    if: github.repository == 'micronaut-projects/micronaut-project-template'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
