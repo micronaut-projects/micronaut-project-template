@@ -1,7 +1,7 @@
 name: Update Gradle Wrapper
-on: [push, pull_request]
-#  schedule:
-#    - cron: '0 0 * * MON'
+on:
+  schedule:
+    - cron: '0 0 * * MON'
 jobs:
   update-wrapper:
     if: github.repository == 'micronaut-projects/micronaut-project-template'
