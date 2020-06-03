@@ -40,6 +40,7 @@ jobs:
             micronaut-projects/micronaut-kafka
             micronaut-projects/micronaut-kotlin
             micronaut-projects/micronaut-micrometer
+            micronaut-projects/micronaut-mongodb
             micronaut-projects/micronaut-nats
             micronaut-projects/micronaut-netflix
             micronaut-projects/micronaut-rabbitmq
@@ -51,7 +52,6 @@ jobs:
 # Pending repos:
 #            micronaut-projects/micronaut-rss
 #            micronaut-projects/micronaut-liquibase
-#            micronaut-projects/micronaut-mongodb
 #            micronaut-projects/micronaut-jaxrs
 #            micronaut-projects/micronaut-jmx
 #            micronaut-projects/micronaut-acme
