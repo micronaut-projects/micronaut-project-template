@@ -10,6 +10,7 @@ jobs:
     strategy:
       matrix:
         repo:
+          - aws
           - azure
           - cassandra
           - data
@@ -129,7 +130,6 @@ jobs:
 #          - liquibase
 #          - jmx
 #          - acme
-#          - aws
 #          - cache
 #          - couchbase
 #          - core
