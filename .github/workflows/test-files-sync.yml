@@ -1,0 +1,61 @@
+name: Test files sync
+on:
+  push:
+    branches:
+      - master
+jobs:
+  sync-files:
+    if: github.repository == 'micronaut-projects/micronaut-project-template'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        repo:
+          - rabbitmq
+          - sql
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v2
+        with:
+          path: source
+      - name: Checkout target
+        uses: actions/checkout@v2
+        with:
+          repository: micronaut-projects/micronaut-${{ matrix.repo }}
+          path: target
+          token: ${{ secrets.GH_TOKEN }}
+      - name: Copy files from source to target
+        run: |
+          while IFS= read -r file; do
+              dest="$(dirname $file)"
+              mkdir -p target/$dest
+              cp -r source/$file target/$dest
+          done <<< "$FILES"
+        env:
+          FILES: |-
+            .github/workflows/central-sync.yml
+            .github/workflows/dependency-check.yml
+            .github/workflows/dependency-update.yml
+            .github/workflows/gradle.yml
+            .github/workflows/label-sync.yml
+            .github/workflows/release.yml
+            .github/workflows/release-notes.yml
+            gradle/*
+            gradlew*
+            .gitignore
+            ISSUE_TEMPLATE.md
+            LICENSE
+            config/HEADER
+            config/spotless.license.java
+            config/checkstyle/checkstyle.xml
+      - name: Commit files
+        working-directory: target
+        run: |
+          git config user.name 'micronaut-build'
+          git config user.email 'micronaut-build@users.noreply.github.com'
+          git checkout -b
+          git add -A
+          git commit -m "Update common files"
+          hub version
+          hub pr list
+#          hub pull-request -fp -b master -l "relates-to: build"
+#          revision_branch=$(git --no-pager branch --list --remote "origin/*" | egrep '[1-9]+\.[0-9]+\.x$' | sed -e "s/.*origin\///" | sort -t. -k 1,1nr -k 2,2nr -k 3,3nr | head -1)
