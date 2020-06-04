@@ -1,4 +1,4 @@
-name: Files sync
+name: Custom files sync
 on:
   push:
     branches:
@@ -27,8 +27,8 @@ jobs:
         run: |
           while IFS= read -r file; do
               dest="$(dirname $file)"
-              mkdir -p $dest
-              cp source/$file target/$dest
+              mkdir -p target/$dest
+              cp -r source/$file target/$dest
           done <<< "$FILES"
         env:
           FILES: |-
