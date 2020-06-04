@@ -49,6 +49,8 @@ jobs:
             config/checkstyle/checkstyle.xml
       - name: Commit files
         working-directory: target
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           git config user.name 'micronaut-build'
           git config user.email 'micronaut-build@users.noreply.github.com'
