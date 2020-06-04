@@ -13,6 +13,7 @@ jobs:
           - azure
           - cassandra
           - data
+          - elasticsearch
           - flyway
           - gcp
           - groovy
@@ -96,7 +97,6 @@ jobs:
 #          - cache
 #          - couchbase
 #          - core
-#          - elasticsearch
 #          - graphql
 #          - jms
 #          - kubernetes
