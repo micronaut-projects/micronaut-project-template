@@ -10,8 +10,31 @@ jobs:
     strategy:
       matrix:
         repo:
+          - azure
+          - data
+          - flyway
+          - gcp
+          - groovy
+          - grpc
+          - jaxrs
+          - kafka
+          - kotlin
+          - micrometer
+          - mongodb
+          - nats
+          - neo4j
+          - netflix
           - rabbitmq
+          - redis
+          - reactor
+          - rxjava1
+          - rxjava3
+          - servlet
+          - spring
+          - sql
           - test
+          - openapi
+          - views
     steps:
       - name: Checkout source
         uses: actions/checkout@v2
@@ -56,3 +79,25 @@ jobs:
           title: "[TEST] Update common files"
           body: Update common files
           labels: "relates-to: build"
+          branch-suffix: short-commit-hash
+
+# Pending repos:
+#          - rss
+#          - liquibase
+#          - jmx
+#          - acme
+#          - aws
+#          - cache
+#          - cassandra
+#          - couchbase
+#          - core
+#          - elasticsearch
+#          - graphql
+#          - hibernate-validator
+#          - jackson-xml
+#          - jms
+#          - kubernetes
+#          - oauth2
+#          - picocli
+#          - ratelimiter
+#          - security
