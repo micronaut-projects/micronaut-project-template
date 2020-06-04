@@ -52,6 +52,6 @@ jobs:
           committer: GitHub <noreply@github.com>
           author: micronaut-build <micronaut-build@users.noreply.github.com>
           commit-message: Update common files
-          title: [TEST] Update common files
+          title: "[TEST] Update common files"
           body: Update common files
           labels: "relates-to: build"
