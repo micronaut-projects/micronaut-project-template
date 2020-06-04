@@ -54,7 +54,7 @@ jobs:
           git config user.email 'micronaut-build@users.noreply.github.com'
           git checkout -b test-sync-files
           git add -A
-          git commit -m "Update common files"
+          git commit -m "Update common files" || true
           hub version
           hub pr list
 #          hub pull-request -fp -b master -l "relates-to: build"
