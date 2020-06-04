@@ -16,6 +16,7 @@ jobs:
           - elasticsearch
           - flyway
           - gcp
+          - graphql
           - groovy
           - grpc
           - hibernate-validator
@@ -132,7 +133,6 @@ jobs:
 #          - cache
 #          - couchbase
 #          - core
-#          - graphql
 #          - jms
 #          - kubernetes
 #          - oauth2
