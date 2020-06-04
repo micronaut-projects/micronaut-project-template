@@ -22,6 +22,7 @@ jobs:
         with:
           repository: micronaut-projects/micronaut-${{ matrix.repo }}
           path: target
+          fetch-depth: 0
           token: ${{ secrets.GH_TOKEN }}
       - name: Determine latest maintenance branch
         id: branch
@@ -44,7 +45,7 @@ jobs:
               dest="$(dirname $file)"
               mkdir -p target/$dest
               cp -r source/$file target/$dest
-              if [ -d branch ]; do
+              if [ -d branch ]; then
                 mkdir -p branch/$dest
                 cp -r source/$file branch/$dest
               fi
