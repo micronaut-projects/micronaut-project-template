@@ -11,6 +11,7 @@ jobs:
       matrix:
         repo:
           - azure
+          - cassandra
           - data
           - flyway
           - gcp
@@ -90,7 +91,6 @@ jobs:
 #          - acme
 #          - aws
 #          - cache
-#          - cassandra
 #          - couchbase
 #          - core
 #          - elasticsearch
