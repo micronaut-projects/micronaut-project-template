@@ -67,7 +67,9 @@ jobs:
             .gitignore
             ISSUE_TEMPLATE.md
             LICENSE
-            config*
+            config/HEADER
+            config/spotless.license.java
+            config/checkstyle/checkstyle.xml
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v2
         with:
