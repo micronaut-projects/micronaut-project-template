@@ -17,6 +17,7 @@ jobs:
           - gcp
           - groovy
           - grpc
+          - jackson-xml
           - jaxrs
           - kafka
           - kotlin
@@ -96,7 +97,6 @@ jobs:
 #          - elasticsearch
 #          - graphql
 #          - hibernate-validator
-#          - jackson-xml
 #          - jms
 #          - kubernetes
 #          - oauth2
