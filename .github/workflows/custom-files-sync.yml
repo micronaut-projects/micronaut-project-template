@@ -39,7 +39,8 @@ jobs:
             .github/workflows/label-sync.yml
             .github/workflows/release.yml
             .github/workflows/release-notes.yml
-            gradle*
+            gradle/*
+            gradlew*
             .gitignore
             ISSUE_TEMPLATE.md
             LICENSE
