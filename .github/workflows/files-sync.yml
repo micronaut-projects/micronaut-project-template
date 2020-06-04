@@ -47,6 +47,7 @@ jobs:
             micronaut-projects/micronaut-neo4j
             micronaut-projects/micronaut-netflix
             micronaut-projects/micronaut-rabbitmq
+            micronaut-projects/micronaut-redis
             micronaut-projects/micronaut-reactor
             micronaut-projects/micronaut-rxjava1
             micronaut-projects/micronaut-rxjava3
@@ -76,6 +77,5 @@ jobs:
 #            micronaut-projects/micronaut-oauth2            
 #            micronaut-projects/micronaut-picocli
 #            micronaut-projects/micronaut-ratelimiter
-#            micronaut-projects/micronaut-redis
 #            micronaut-projects/micronaut-security
 
