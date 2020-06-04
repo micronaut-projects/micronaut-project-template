@@ -26,6 +26,7 @@ jobs:
           - nats
           - neo4j
           - netflix
+          - picocli
           - rabbitmq
           - redis
           - reactor
@@ -100,6 +101,5 @@ jobs:
 #          - jms
 #          - kubernetes
 #          - oauth2
-#          - picocli
 #          - ratelimiter
 #          - security
