@@ -24,6 +24,7 @@ jobs:
           - hibernate-validator
           - jackson-xml
           - jaxrs
+          - jmx
           - kafka
           - kotlin
           - micrometer
@@ -130,7 +131,6 @@ jobs:
 # Pending repos:
 #          - rss
 #          - liquibase
-#          - jmx
 #          - acme
 #          - couchbase
 #          - core
