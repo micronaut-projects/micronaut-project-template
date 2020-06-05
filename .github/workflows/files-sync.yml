@@ -12,6 +12,7 @@ jobs:
         repo:
           - aws
           - azure
+          - cache
           - cassandra
           - data
           - elasticsearch
@@ -130,7 +131,6 @@ jobs:
 #          - liquibase
 #          - jmx
 #          - acme
-#          - cache
 #          - couchbase
 #          - core
 #          - jms
