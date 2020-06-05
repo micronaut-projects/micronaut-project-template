@@ -37,6 +37,7 @@ jobs:
           - reactor
           - rxjava1
           - rxjava3
+          - security
           - servlet
           - spring
           - sql
@@ -137,4 +138,4 @@ jobs:
 #          - kubernetes
 #          - oauth2
 #          - ratelimiter
-#          - security
+
