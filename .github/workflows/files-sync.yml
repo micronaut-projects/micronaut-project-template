@@ -27,23 +27,24 @@ jobs:
           - jmx
           - kafka
           - kotlin
+          - liquibase
           - micrometer
           - mongodb
           - nats
           - neo4j
           - netflix
+          - openapi
           - picocli
+          - sql
           - rabbitmq
-          - redis
           - reactor
+          - redis
           - rxjava1
           - rxjava3
           - security
           - servlet
           - spring
-          - sql
           - test
-          - openapi
           - views
     steps:
       - name: Checkout source
@@ -130,7 +131,6 @@ jobs:
 
 # Pending repos:
 #          - rss
-#          - liquibase
 #          - acme
 #          - couchbase
 #          - core
