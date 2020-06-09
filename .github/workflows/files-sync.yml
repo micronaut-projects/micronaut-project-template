@@ -27,6 +27,7 @@ jobs:
           - jmx
           - kafka
           - kotlin
+          - kubernetes
           - liquibase
           - micrometer
           - mongodb
@@ -135,7 +136,6 @@ jobs:
 #          - couchbase
 #          - core
 #          - jms
-#          - kubernetes
 #          - oauth2
 #          - ratelimiter
 
