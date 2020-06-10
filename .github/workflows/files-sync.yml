@@ -48,13 +48,6 @@ jobs:
           - test
           - views
     steps:
-      - name: Install yq
-        run: |
-          sudo wget -O /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/3.3.0/yq_linux_amd64
-          sudo chmod +x /usr/local/bin/yq
-      - name: Test yq
-        run: |
-          yq --version
       - name: Checkout source
         uses: actions/checkout@v2
         with:
@@ -122,8 +115,21 @@ jobs:
           labels: "relates-to: build"
           branch: sync-files-master
           base: master
-      - name: Create Pull Request - ${{ steps.branch.outputs.branch }}
+
+      - name: Determine whether to skip the branch ${{ steps.branch.outputs.branch }}
         if: steps.branch.outputs.branch != ''
+        id: skip
+        working-directory: branch
+        run: |
+          sudo wget -O /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/3.3.0/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+          skip=false
+          if [ -f .github/micronaut-build.yml ]; then
+            skip=$(yq r .github/micronaut-build.yml files-sync.skip)
+          fi
+          echo ::set-output name=skip::${skip}
+      - name: Create Pull Request - ${{ steps.branch.outputs.branch }}
+        if: steps.branch.outputs.branch != '' && steps.skip.outputs.skip != 'true'
         uses: peter-evans/create-pull-request@v2
         with:
           path: branch
