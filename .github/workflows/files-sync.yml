@@ -36,7 +36,6 @@ jobs:
           - netflix
           - openapi
           - picocli
-          - sql
           - rabbitmq
           - reactor
           - redis
@@ -46,6 +45,7 @@ jobs:
           - security
           - servlet
           - spring
+          - sql
           - test
           - views
     steps:
