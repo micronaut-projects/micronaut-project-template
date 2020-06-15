@@ -10,6 +10,7 @@ jobs:
     strategy:
       matrix:
         repo:
+          - acme
           - aws
           - azure
           - cache
@@ -145,7 +146,6 @@ jobs:
           base: ${{ steps.branch.outputs.branch }}
 
 # Pending repos:
-#          - acme
 #          - couchbase
 #          - core
 #          - jms
