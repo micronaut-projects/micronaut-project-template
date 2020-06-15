@@ -23,7 +23,7 @@ See the documentation in the [Micronaut Docs](https://docs.micronaut.io/latest/g
 
 Releases are published to JCenter and Maven Central via [Github Actions](https://github.com/micronaut-projects/micronaut-xxx/actions).
 
-A release is performed with the following steps:
+Releases are completely automated. To perform a release use the following steps:
 
 * [Publish the draft release](https://github.com/micronaut-projects/micronaut-xxx/releases). There should be already a draft release created, edit and publish it. The Git Tag should start with `v`. For example `v1.0.0`.
 * [Monitor the Workflow](https://github.com/micronaut-projects/micronaut-xxx/actions?query=workflow%3ARelease) to check it passed successfully.
