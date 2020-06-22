@@ -23,6 +23,7 @@ jobs:
           - groovy
           - grpc
           - hibernate-validator
+          - ignite
           - jackson-xml
           - jaxrs
           - jmx
