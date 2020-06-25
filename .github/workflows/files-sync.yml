@@ -110,8 +110,8 @@ jobs:
         with:
           path: target
           token: ${{ secrets.GH_TOKEN }}
-          committer: GitHub <noreply@github.com>
-          author: micronaut-build <micronaut-build@users.noreply.github.com>
+          committer: micronaut-build <${{ secrets.MICRONAUT_BUILD_EMAIL }}>
+          author: micronaut-build <${{ secrets.MICRONAUT_BUILD_EMAIL }}>
           commit-message: Update common files
           title: "[${{ matrix.repo }}] Update common files for branch master"
           body: Update common files
@@ -137,8 +137,8 @@ jobs:
         with:
           path: branch
           token: ${{ secrets.GH_TOKEN }}
-          committer: GitHub <noreply@github.com>
-          author: micronaut-build <micronaut-build@users.noreply.github.com>
+          committer: micronaut-build <${{ secrets.MICRONAUT_BUILD_EMAIL }}>
+          author: micronaut-build <${{ secrets.MICRONAUT_BUILD_EMAIL }}>
           commit-message: Update common files
           title: "[${{ matrix.repo }}] Update common files for branch ${{ steps.branch.outputs.branch }}"
           body: Update common files

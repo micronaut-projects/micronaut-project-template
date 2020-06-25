@@ -8,6 +8,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GH_TOKEN }}
       - name: "Update Gradle Wrapper"
         id: update
         run: |
@@ -19,4 +21,5 @@ jobs:
         with:
           commit_message: Upgrade Gradle Wrapper to ${{ steps.update.outputs.latest_version }}
           commit_user_name: micronaut-build
-          commit_user_email: micronaut-build@users.noreply.github.com
+          commit_user_email: ${{ secrets.MICRONAUT_BUILD_EMAIL }}
+          commit_author: micronaut-build <${{ secrets.MICRONAUT_BUILD_EMAIL }}>
