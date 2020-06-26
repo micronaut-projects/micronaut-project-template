@@ -15,6 +15,7 @@ jobs:
           - azure
           - cache
           - cassandra
+          - core
           - data
           - elasticsearch
           - flyway
