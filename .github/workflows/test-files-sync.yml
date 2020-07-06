@@ -1,0 +1,112 @@
+name: Files sync
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/test-files-sync.yml"
+jobs:
+  sync-files:
+    if: github.repository == 'micronaut-projects/micronaut-project-template'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        repo:
+          - acme
+          - aws
+          - azure
+          - cache
+          - cassandra
+          - core
+          - data
+          - elasticsearch
+          - flyway
+          - gcp
+          - graphql
+          - groovy
+          - grpc
+          - hibernate-validator
+          - ignite
+          - jackson-xml
+          - jaxrs
+          - jmx
+          - kafka
+          - kotlin
+          - kubernetes
+          - liquibase
+          - micrometer
+          - mongodb
+          - nats
+          - neo4j
+          - netflix
+          - openapi
+          - picocli
+          - rabbitmq
+          - reactor
+          - redis
+          - rss
+          - rxjava1
+          - rxjava3
+          - security
+          - servlet
+          - spring
+          - sql
+          - test
+          - views
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v2
+        with:
+          path: source
+      - name: Checkout target - master
+        uses: actions/checkout@v2
+        with:
+          repository: micronaut-projects/micronaut-${{ matrix.repo }}
+          path: target
+          fetch-depth: 0
+          token: ${{ secrets.GH_TOKEN }}
+      - name: Determine latest maintenance branch
+        id: branch
+        working-directory: target
+        run: |
+          branch=$(git --no-pager branch --list --remote "origin/*" | egrep '[1-9]+\.[0-9]+\.x$' | sed -e "s/.*origin\///" | sort -t. -k 1,1nr -k 2,2nr -k 3,3nr | head -1)
+          echo "Latest maintenance branch: ${branch}"
+          echo ::set-output name=branch::${branch}
+      - name: Checkout target - ${{ steps.branch.outputs.branch }}
+        if: steps.branch.outputs.branch != ''
+        uses: actions/checkout@v2
+        with:
+          repository: micronaut-projects/micronaut-${{ matrix.repo }}
+          path: branch
+          ref: ${{ steps.branch.outputs.branch }}
+          token: ${{ secrets.GH_TOKEN }}
+      - name: Sync workflows
+        run: |
+          rsync --dry-run --verbose --verbose  --delete --archive -F "source/.github/workflows/" "target/.github/workflows/"
+          if [ -d branch ]; then
+            rsync --dry-run --verbose --verbose  --delete --archive -F "source/.github/workflows/" "branch/.github/workflows/"
+          fi
+      - name: Copy files from source to target branches
+        run: |
+          while IFS= read -r file; do
+              dest="$(dirname $file)"
+              mkdir -p target/$dest
+              cp -r source/$file target/$dest
+              if [ -d branch ]; then
+                mkdir -p branch/$dest
+                cp -r source/$file branch/$dest
+              fi
+          done <<< "$FILES"
+        env:
+          FILES: |-
+            gradle/*
+            gradlew*
+            .gitignore
+            ISSUE_TEMPLATE.md
+            LICENSE
+            config/HEADER
+            config/spotless.license.java
+            config/checkstyle/checkstyle.xml
+
+
+
