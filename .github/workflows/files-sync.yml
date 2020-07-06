@@ -5,8 +5,7 @@ on:
       - master
 jobs:
   sync-files:
-#    if: github.repository == 'micronaut-projects/micronaut-project-template'
-    if: false
+    if: github.repository == 'micronaut-projects/micronaut-project-template'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -80,6 +79,12 @@ jobs:
           path: branch
           ref: ${{ steps.branch.outputs.branch }}
           token: ${{ secrets.GH_TOKEN }}
+      - name: Sync workflows
+        run: |
+          rsync --verbose --verbose  --delete --archive -F "source/.github/workflows/" "target/.github/workflows/"
+          if [ -d branch ]; then
+            rsync --verbose --verbose  --delete --archive -F "source/.github/workflows/" "branch/.github/workflows/"
+          fi
       - name: Copy files from source to target branches
         run: |
           while IFS= read -r file; do
@@ -93,13 +98,6 @@ jobs:
           done <<< "$FILES"
         env:
           FILES: |-
-            .github/workflows/central-sync.yml
-            .github/workflows/dependency-check.yml
-            .github/workflows/dependency-update.yml
-            .github/workflows/gradle.yml
-            .github/workflows/label-sync.yml
-            .github/workflows/release.yml
-            .github/workflows/release-notes.yml
             gradle/*
             gradlew*
             .gitignore
@@ -151,7 +149,6 @@ jobs:
 
 # Pending repos:
 #          - couchbase
-#          - core
 #          - jms
 #          - oauth2
 #          - ratelimiter
