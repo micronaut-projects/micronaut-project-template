@@ -17,6 +17,7 @@ jobs:
           - cassandra
           - core
           - data
+          - discovery-client
           - elasticsearch
           - flyway
           - gcp
