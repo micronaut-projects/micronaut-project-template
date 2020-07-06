@@ -5,7 +5,8 @@ on:
       - master
 jobs:
   sync-files:
-    if: github.repository == 'micronaut-projects/micronaut-project-template'
+#    if: github.repository == 'micronaut-projects/micronaut-project-template'
+    if: false
     runs-on: ubuntu-latest
     strategy:
       matrix:
