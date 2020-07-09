@@ -3,7 +3,7 @@
 # Extend from https://github.com/micronaut-projects/.github/blob/master/.github/settings.yml
 _extends: .github
 
-repository:
+#repository:
   # See https://developer.github.com/v3/repos/#edit for all available settings.
 
   # Updates the default branch for this repository.
