@@ -99,7 +99,6 @@ jobs:
         env:
           FILES: |-
             .github/dependabot.yml
-            .github/settings.yml
             gradle/*
             gradlew*
             .gitignore
