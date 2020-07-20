@@ -16,11 +16,13 @@ jobs:
           - cache
           - cassandra
           - core
+          - couchbase
           - data
           - discovery-client
           - elasticsearch
           - flyway
           - gcp
+          - gradle-plugin
           - graphql
           - groovy
           - grpc
@@ -28,6 +30,7 @@ jobs:
           - ignite
           - jackson-xml
           - jaxrs
+          - jms
           - jmx
           - kafka
           - kotlin
@@ -39,8 +42,10 @@ jobs:
           - neo4j
           - netflix
           - openapi
+          - oracle-cloud
           - picocli
           - rabbitmq
+          - ratelimiter
           - reactor
           - redis
           - rss
@@ -147,12 +152,6 @@ jobs:
           labels: "relates-to: build"
           branch: sync-files-${{ steps.branch.outputs.branch }}
           base: ${{ steps.branch.outputs.branch }}
-
-# Pending repos:
-#          - couchbase
-#          - jms
-#          - oauth2
-#          - ratelimiter
 
 
 
