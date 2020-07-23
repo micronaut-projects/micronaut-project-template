@@ -12,10 +12,19 @@ buildscript {
 
 subprojects { Project subproject ->
     group "io.micronaut.xxx"
+    
+    repositories {
+        maven {
+            url "https://oss.jfrog.org/oss-snapshot-local"
+            content {
+                includeVersionByRegex('io.micronaut.*', '.*', '.*BUILD-SNAPSHOT')
+            }
+        }
+    }
 
     apply plugin: "io.micronaut.build.common"
     apply plugin: "io.micronaut.build.dependency-updates"
-
+    
     if (subproject.parent.name == "docs-examples" || subproject.name == "docs-examples") {
         return
     }
