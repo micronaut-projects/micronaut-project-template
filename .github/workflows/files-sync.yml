@@ -114,6 +114,7 @@ jobs:
             config/HEADER
             config/spotless.license.java
             config/checkstyle/checkstyle.xml
+            config/checkstyle/suppressions.xml
       - name: Create Pull Request - master
         uses: peter-evans/create-pull-request@v2
         with:
