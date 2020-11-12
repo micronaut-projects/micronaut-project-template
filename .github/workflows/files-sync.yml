@@ -38,6 +38,7 @@ jobs:
           - liquibase
           - micrometer
           - mongodb
+          - mqtt
           - nats
           - neo4j
           - netflix
