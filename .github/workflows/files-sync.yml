@@ -45,6 +45,7 @@ jobs:
           - openapi
           - oracle-cloud
           - picocli
+          - r2dbc
           - rabbitmq
           - ratelimiter
           - reactor
