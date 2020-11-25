@@ -63,6 +63,9 @@ criteria:
   type of things you would review in every other software project.
 * Contains tests.
 * Includes documentation.
+* If it closes any issues, 
+  [they should be linked](https://docs.github.com/en/free-pro-team@latest/github/managing-your-work-on-github/linking-a-pull-request-to-an-issue)
+  either using closing keywords, or manually.
 
 Regarding the target branch, backwards-compatible bug fixes and improvements typically target the default branch, 
 backwards-compatible enhancements target the next minor version branch, and breaking changes target the next major version
