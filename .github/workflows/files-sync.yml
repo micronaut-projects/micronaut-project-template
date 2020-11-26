@@ -118,7 +118,7 @@ jobs:
             config/checkstyle/checkstyle.xml
             config/checkstyle/suppressions.xml
       - name: Create Pull Request - master
-        uses: peter-evans/create-pull-request@v3.5.0
+        uses: peter-evans/create-pull-request@v3.5.1
         with:
           path: target
           token: ${{ secrets.GH_TOKEN }}
@@ -145,7 +145,7 @@ jobs:
           echo ::set-output name=skip::${skip}
       - name: Create Pull Request - ${{ steps.branch.outputs.branch }}
         if: steps.branch.outputs.branch != '' && steps.skip.outputs.skip != 'true'
-        uses: peter-evans/create-pull-request@v3.5.0
+        uses: peter-evans/create-pull-request@v3.5.1
         with:
           path: branch
           token: ${{ secrets.GH_TOKEN }}
