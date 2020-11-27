@@ -113,7 +113,14 @@ We have a [template repo](https://github.com/micronaut-projects/micronaut-projec
 source of truth for certain files. It is used as a template to create new repos, and changes to certain files in the
 temaplate repo will get propagated automatically. The files propagated are:
 
-* Workflow files (`.github/workflows/*`). They are copied using rsync.
+* Workflow files (`.github/workflows/*`). They are copied using rsync"
+  * `bintray-publish.yml`.
+  * `central-sync.yml`.
+  * `dependency-update.yml`.
+  * `graalvm.yml`.
+  * `gradle.yml`.
+  * `release.yml`.
+  * `release-notes.yml`.
 * Dependabot configuration (`.github/dependabot.yml`).
 * Gradle wrapper.
 * `.gitignore`.
@@ -123,6 +130,22 @@ temaplate repo will get propagated automatically. The files propagated are:
 Regarding the Gradle wrapper, the template repo checks every week if there is a new Gradle version. If there is, it will
 upgrade the wrapper in the template repo itself, and via the files sync workflow this gets propagated to all repos. This
 way we make sure we stay up-to-date regarding Gradle versions in all repos.
+
+##### Customised workflow files
+
+Due to limitations in the GitHub Actions design (such that they don't allow including snippets or any other kind of
+reusability), for the sync'ed workflow files listed above, it is not possible to have custom steps and still be part of
+the sync process, since any modification to those files will be overwritten the next time the files sync workflow is
+executed.
+
+The "Java CI" (`gradle.yml`) workflow does have the ability to have an optional setup step, though. If there is a `setup.sh`
+file in the project root, it will be executed before invoking Gradle.
+
+There are projects, such as micronaut-gcp and micronaut-kubernetes, that have made customisations to sync'ed workflows
+because it's absolutely necessary. In those projects, the sync pull requests are manually merged so that the customisations
+aren't lost.
+
+Note that it is perfectly possible to have new workflows that aren't part of the sync process.
 
 ## Releases
 
@@ -159,6 +182,11 @@ once the release workflow has finished, you need to manually trigger the Bintray
 
 If everything goes well, you now need to manually trigger the Maven Central publishing workflow via the GitHub UI.
 
+If there is an issue with the release, it's important not to trigger the Maven Central publishing workflow because once 
+we publish a version to Maven Central we cannot change or remove it anymore. On the other hand, if something failed during 
+the Bintray upload, docs publication,... we can manually log in into Bintray UI, delete the artifacts, and then restart 
+the workflow.
+
 There are some properties in `gradle.properties` that affect the release process:
 
 * `githubBranch`: the current branch, usually `master`.
@@ -171,13 +199,13 @@ Micronaut `2.2.0` BOM. If the next version you want to publish is:
 
 * A new patch release (`1.0.1`): simply publish the existing draft release.
 * A new minor release (`1.1.0`): 
-  * Before the release, push a `1.0.x` branch off `master.
+  * Before the release, push a `1.0.x` branch off `master`.
   * Bump the version in master to `1.1.0.BUILD-SNAPSHOT`.
   * Set the `githubCoreBranch` property to `2.3.x` (or `3.0.x` if it will be the next one).
   * Edit the draft release setting the version to `1.1.0` in the release title, body, tag, etc.
   * Publish the release.
 * A new major release (`2.0.0`): 
-  * Before the release, push a `1.0.x` branch off `master.
+  * Before the release, push a `1.0.x` branch off `master`.
   * Bump the version in master to `2.0.0.BUILD-SNAPSHOT`.
   * Set the `githubCoreBranch` property to `3.0.x` (or `2.3.x` if this new major version doesn't introduce breaking changes).
   * Edit the draft release setting the version to `2.0.0` in the release title, body, tag, etc.
