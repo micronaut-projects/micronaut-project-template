@@ -76,7 +76,7 @@ jobs:
         working-directory: target
         run: |
           branch=$(git rev-parse --abbrev-ref HEAD)
-          echo "Current branch: ${branch}
+          echo "Current branch: ${branch}"
           echo ::set-output name=branch::${branch}
       - name: Sync workflows
         run: |
