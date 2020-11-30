@@ -109,19 +109,7 @@ jobs:
             config/spotless.license.java
             config/checkstyle/checkstyle.xml
             config/checkstyle/suppressions.xml
-      - name: Determine whether to skip the branch ${{ steps.branch.outputs.branch }}
-        id: skip
-        working-directory: branch
-        run: |
-          sudo wget -O /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/3.3.0/yq_linux_amd64
-          sudo chmod +x /usr/local/bin/yq
-          skip=false
-          if [ -f .github/micronaut-build.yml ]; then
-            skip=$(yq r .github/micronaut-build.yml files-sync.skip)
-          fi
-          echo ::set-output name=skip::${skip}
       - name: Create Pull Request - ${{ steps.branch.outputs.branch }}
-        if: steps.skip.outputs.skip != 'true'
         uses: peter-evans/create-pull-request@v3.5.1
         with:
           path: branch
