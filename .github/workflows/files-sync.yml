@@ -71,12 +71,12 @@ jobs:
           path: target
           fetch-depth: 0
           token: ${{ secrets.GH_TOKEN }}
-      - name: Determine default branch
+      - name: Determine current branch
         id: branch
         working-directory: target
         run: |
           branch=$(git rev-parse --abbrev-ref HEAD)
-          echo "Default branch: ${branch}
+          echo "Current branch: ${branch}
           echo ::set-output name=branch::${branch}
       - name: Sync workflows
         run: |
