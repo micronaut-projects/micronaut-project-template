@@ -96,6 +96,7 @@ jobs:
             gradlew*
             .gitignore
             ISSUE_TEMPLATE.md
+            MAINTAINING.md
             LICENSE
             config/HEADER
             config/spotless.license.java
