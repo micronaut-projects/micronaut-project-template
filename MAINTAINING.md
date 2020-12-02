@@ -98,6 +98,12 @@ All Micronaut repos have 2 dependency upgrade checking mechanism:
    [Gradle Use Latest Versions Plugin](https://github.com/patrikerdes/gradle-use-latest-versions-plugin). It runs daily
    during weekdays.
    
+The consequence of having both approaches in place is that we get multiple dependency upgrade PRs: one created by
+`micronaut-build` via our automation, and one or many (one per dependency) created by Dependabot. When merging those, it
+is better to prefer the `micronaut-build` ones, if possible, for 2 reasons: a) they attempt to upgrade multiple dependencies 
+in a single PR, which creates less noise in the Git history; b) Once you merge that, Dependabot will react and automatically
+close its own PRs if the dependecy is up-to-date.
+   
 When an upgrade to a new version arrives, we need to be careful when merging, so that we don't introduce an
 unnecessary upgrade burden on our users. Read the
 [Module Upgrade Strategy](https://github.com/micronaut-projects/micronaut-core/wiki/Module-Upgrade-Strategy) for more
