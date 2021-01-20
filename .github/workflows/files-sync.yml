@@ -38,6 +38,7 @@ jobs:
           - liquibase
           - micrometer
           - mongodb
+          - multitenancy
           - mqtt
           - nats
           - neo4j
