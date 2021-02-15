@@ -48,7 +48,6 @@ jobs:
           - picocli
           - r2dbc
           - rabbitmq
-          - ratelimiter
           - reactor
           - redis
           - rss
