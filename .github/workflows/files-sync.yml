@@ -15,6 +15,7 @@ jobs:
           - azure
           - cache
           - cassandra
+          - coherence
           - core
           - couchbase
           - data
@@ -38,14 +39,15 @@ jobs:
           - liquibase
           - micrometer
           - mongodb
-          - multitenancy
           - mqtt
+          - multitenancy
           - nats
           - neo4j
           - netflix
           - openapi
           - oracle-cloud
           - picocli
+          - pulsar
           - r2dbc
           - rabbitmq
           - reactor
