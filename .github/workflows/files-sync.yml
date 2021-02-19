@@ -44,7 +44,6 @@ jobs:
           - multitenancy
           - nats
           - neo4j
-          - netflix
           - openapi
           - oracle-cloud
           - picocli
@@ -54,7 +53,6 @@ jobs:
           - reactor
           - redis
           - rss
-          - rxjava1
           - rxjava3
           - security
           - servlet
