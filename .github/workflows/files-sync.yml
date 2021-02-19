@@ -8,6 +8,7 @@ jobs:
     if: github.repository == 'micronaut-projects/micronaut-project-template'
     runs-on: ubuntu-latest
     strategy:
+      max-parallel: 3
       matrix:
         repo:
           - acme
