@@ -44,6 +44,8 @@ jobs:
           [ -f ./setup.sh ] && ./setup.sh || true
       - name: Build with Gradle
         run: ./gradlew dependencyUpdates check --no-daemon --parallel --continue
+        env:
+           TESTCONTAINERS_RYUK_DISABLED: true        
       - name: Publish to Sonatype Snapshots
         if: success() && github.event_name == 'push' && matrix.java == '8'
         env:
