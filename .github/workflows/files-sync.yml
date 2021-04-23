@@ -47,6 +47,7 @@ jobs:
           - openapi
           - oracle-cloud
           - picocli
+          - problem-json
           - pulsar
           - r2dbc
           - rabbitmq
