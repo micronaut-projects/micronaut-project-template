@@ -105,7 +105,7 @@ jobs:
             config/checkstyle/checkstyle.xml
             config/checkstyle/suppressions.xml
       - name: Create Pull Request - ${{ steps.branch.outputs.branch }}
-        uses: peter-evans/create-pull-request@v3.8.2
+        uses: peter-evans/create-pull-request@v3.9.1
         with:
           path: target
           token: ${{ secrets.GH_TOKEN }}
