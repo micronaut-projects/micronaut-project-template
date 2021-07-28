@@ -97,13 +97,16 @@ jobs:
             gradle/*
             gradlew*
             .gitignore
-            ISSUE_TEMPLATE.md
             MAINTAINING.md
             LICENSE
             config/HEADER
             config/spotless.license.java
             config/checkstyle/checkstyle.xml
             config/checkstyle/suppressions.xml
+            .github/ISSUE_TEMPLATE/bug_report.yaml
+            .github/ISSUE_TEMPLATE/config.yml
+            .github/ISSUE_TEMPLATE/new_feature.yaml
+            .github/ISSUE_TEMPLATE/other.yaml
       - name: Create Pull Request - ${{ steps.branch.outputs.branch }}
         uses: peter-evans/create-pull-request@v3.10.0
         with:
