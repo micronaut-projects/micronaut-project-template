@@ -17,6 +17,8 @@ jobs:
           token: ${{ secrets.GH_TOKEN }}
       - name: "Update Gradle Wrapper"
         id: update
+        env:
+          GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GRADLE_ENTERPRISE_ACCESS_KEY }}
         run: |
           latest=`curl -s https://services.gradle.org/versions/current | jq -cr ".version"`
           echo ::set-output name=latest_version::${latest}
