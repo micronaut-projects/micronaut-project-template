@@ -4,8 +4,6 @@
 name: Template Clean Up
 on:
   push:
-    branches:
-      - main
 
 jobs:
 
@@ -24,10 +22,10 @@ jobs:
       - name: Cleanup
         run: |
           # Update CLA url in CONTRIBUTING.md
-          sed -i "s|micronaut-projec/micronaut-project-template|$GITHUB_REPOSITORY|" CONTRIBUTING.md
-          # Cleanup
-          rm -rf \
-            .github/workflows/template-cleanup.yaml \
+          sed -i "s|micronaut-projects/micronaut-project-template|$GITHUB_REPOSITORY|" CONTRIBUTING.md
+
+          # Remove clean up template
+          rm -rf  .github/workflows/template-cleanup.yml 
       # Commit modified files
       - name: Commit files
         run: |
@@ -39,5 +37,5 @@ jobs:
       - name: Push changes
         uses: ad-m/github-push-action@master
         with:
-          branch: main
+          branch: ${{ github.ref }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
