@@ -6,7 +6,7 @@ If you are interested in contributing to Micronaut and are looking for issues to
 
 ## JDK Setup
 
-Micronaut XXX currently requires JDK 8
+Micronaut XXX currently requires JDK 8.
 
 ## IDE Setup
 
@@ -14,23 +14,23 @@ Micronaut XXX can be imported into IntelliJ IDEA by opening the `build.gradle` f
 
 ## Docker Setup
 
-Micronaut XXX tests currently require docker to be installed.
+Micronaut XXX tests currently require Docker to be installed.
 
 ## Running Tests
 
-To run the tests use `./gradlew check`.
+To run the tests, use `./gradlew check`.
 
 ## Building Documentation
 
 The documentation sources are located at `src/main/docs/guide`.
 
-To build the documentation run `./gradlew publishGuide` or `./gradlew pG` then open `build/docs/index.html`  
+To build the documentation, run `./gradlew publishGuide` (or `./gradlew pG`), then open `build/docs/index.html`
 
-To also build the javadocs instead run `./gradlew docs`.
+To also build the Javadocs, run `./gradlew docs`.
 
 ## Working on the code base
 
-If you are working with the IntelliJ IDEA development environment, you can import the project using the Intellij Gradle Tooling ( "File / Import Project" and select the "settings.gradle" file).
+If you use IntelliJ IDEA, you can import the project using the Intellij Gradle Tooling ("File / Import Project" and selecting the "settings.gradle" file).
 
 To get a local development version of Micronaut XXX working, first run the `publishToMavenLocal` task.
 
@@ -38,7 +38,14 @@ To get a local development version of Micronaut XXX working, first run the `publ
 ./gradlew pTML
 ```
 
-You can then reference the version specified with `projectVersion` in `gradle.properties` in a test project's `build.gradle` or `pom.xml`.
+You can then reference the version specified with `projectVersion` in `gradle.properties` in a test project's `build.gradle` or `pom.xml`. If you use Gradle, add the `mavenLocal` repository (Maven automatically does this):
+
+```
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+```
 
 ## Creating a pull request
 
@@ -50,16 +57,15 @@ Once you are satisfied with your changes:
 
 ## Checkstyle
 
-We want to keep the code clean, following good practices about organization, javadoc and style as much as possible.
+We want to keep the code clean, following good practices about organization, Javadoc, and style as much as possible.
 
-Micronaut XXX uses [Checkstyle](https://checkstyle.sourceforge.io/) to make sure that all the code follows those standards. The configuration file is defined in `config/checkstyle/checkstyle.xml` and to execute the Checkstyle you
-need to run:
+Micronaut XXX uses [Checkstyle](https://checkstyle.sourceforge.io/) to make sure that the code follows those standards. The configuration is defined in `config/checkstyle/checkstyle.xml`. To execute Checkstyle, run:
 
 ```
 ./gradlew <module-name>:checkstyleMain
 ```
 
-Before start contributing with new code it is recommended to install IntelliJ [CheckStyle-IDEA](https://plugins.jetbrains.com/plugin/1065-checkstyle-idea) plugin and configure it to use Micronaut's checkstyle configuration file.
+Before starting to contribute new code we recommended that you install the IntelliJ [CheckStyle-IDEA](https://plugins.jetbrains.com/plugin/1065-checkstyle-idea) plugin and configure it to use Micronaut's checkstyle configuration file.
 
 IntelliJ will mark in red the issues Checkstyle finds. For example:
 
@@ -71,5 +77,4 @@ In this case, to fix the issues, we need to:
 - Add the Javadoc for the constructor in line 27
 - Add an space after `if` in line 34
 
-The plugin also adds a new tab in the bottom to run checkstyle report and see all the errors and warnings. It is recommended
-to run the report and fixing all the issues before submitting a pull request.
+The plugin also adds a new tab in the bottom of the IDE to run Checkstyle and show errors and warnings. We recommend that you run the report and fix all issues before submitting a pull request.
