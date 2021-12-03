@@ -1,0 +1,4 @@
+plugins {
+    id 'io.micronaut.build.internal.xxx-base'
+    id "io.micronaut.build.internal.module"
+}
