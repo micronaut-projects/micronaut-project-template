@@ -23,9 +23,10 @@ jobs:
         run: |
           # Update CLA url in CONTRIBUTING.md
           sed -i "s|micronaut-projects/micronaut-project-template|$GITHUB_REPOSITORY|" CONTRIBUTING.md
+          sed -i "s|micronaut-projects/micronaut-project-template|$GITHUB_REPOSITORY|" SECURITY.md
 
           # Remove clean up template
-          rm -rf  .github/workflows/template-cleanup.yml 
+          rm -rf  .github/workflows/template-cleanup.yml
       # Commit modified files
       - name: Commit files
         run: |
