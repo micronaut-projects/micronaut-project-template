@@ -8,15 +8,15 @@ If you are interested in contributing to Micronaut and are looking for issues to
 
 ## JDK Setup
 
-Micronaut XXX currently requires JDK 8.
+Micronaut project-template currently requires JDK 8.
 
 ## IDE Setup
 
-Micronaut XXX can be imported into IntelliJ IDEA by opening the `build.gradle` file.
+Micronaut project-template can be imported into IntelliJ IDEA by opening the `build.gradle` file.
 
 ## Docker Setup
 
-Micronaut XXX tests currently require Docker to be installed.
+Micronaut project-template tests currently require Docker to be installed.
 
 ## Running Tests
 
