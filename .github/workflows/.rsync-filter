@@ -2,3 +2,4 @@
 - test-files-sync.yml
 - update-gradle-wrapper.yml
 - .rsync-filter
+- template-cleanup.yml
