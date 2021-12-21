@@ -9,7 +9,7 @@ plugins {
     id 'io.micronaut.build.shared.settings' version '5.1.0'
 }
 
-rootProject.name = 'xxx-parent'
+rootProject.name = 'project-template-parent'
 
-include 'xxx'
-include 'xxx-bom'
+include 'project-template'
+include 'project-template-bom'

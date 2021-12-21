@@ -23,8 +23,18 @@ jobs:
         run: |
           # Update CLA url in CONTRIBUTING.md
           sed -i "s|micronaut-projects/micronaut-project-template|$GITHUB_REPOSITORY|" CONTRIBUTING.md
-          sed -i "s|micronaut-projects/micronaut-project-template|$GITHUB_REPOSITORY|" SECURITY.md
-
+          sed -i "s|project-template|${GITHUB_REPOSITORY:29}|" README.md
+          sed -i "s|project-template|${GITHUB_REPOSITORY:29}|" gradle.properties
+          sed -i "s|project-template|${GITHUB_REPOSITORY:29}|" CONTRIBUTING.md
+          sed -i "s|project-template|${GITHUB_REPOSITORY:29}|" MAINTAINING.md
+          sed -i "s|micronaut-projects/micronaut-project-template|$GITHUB_REPOSITORY|" SECURITY.md          
+          sed -i "s|project-template|${GITHUB_REPOSITORY:29}|" project-template/build.gradle
+          sed -i "s|project-template|${GITHUB_REPOSITORY:29}|" project-template-bom/build.gradle
+          sed -i "s|project-template|${GITHUB_REPOSITORY:29}|" buildSrc/src/main/groovy/io.micronaut.build.internal.project-template-module.gradle
+          git mv project-template/ "micronaut-${GITHUB_REPOSITORY:29}/"
+          git mv project-template-bom/ "micronaut-${GITHUB_REPOSITORY:29}-bom/"
+          git mv buildSrc/src/main/groovy/io.micronaut.build.internal.project-template-module.gradle "buildSrc/src/main/groovy/io.micronaut.build.internal.${GITHUB_REPOSITORY:29}-module.gradle"
+          git mv buildSrc/src/main/groovy/io.micronaut.build.internal.project-template-base.gradle "buildSrc/src/main/groovy/io.micronaut.build.internal.${GITHUB_REPOSITORY:29}-base.gradle"          
           # Remove clean up template
           rm -rf  .github/workflows/template-cleanup.yml
       # Commit modified files
