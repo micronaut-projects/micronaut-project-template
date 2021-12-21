@@ -12,6 +12,7 @@ jobs:
       matrix:
         repo:
           - acme
+          - aot
           - aws
           - azure
           - cache
@@ -56,6 +57,7 @@ jobs:
           - rss
           - rxjava3
           - security
+          - serialization
           - servlet
           - spring
           - sql
