@@ -27,6 +27,7 @@ jobs:
           sed -i "s|project-template|${GITHUB_REPOSITORY:29}|" gradle.properties
           sed -i "s|project-template|${GITHUB_REPOSITORY:29}|" CONTRIBUTING.md
           sed -i "s|project-template|${GITHUB_REPOSITORY:29}|" MAINTAINING.md
+          sed -i "s|micronaut-projects/micronaut-project-template|$GITHUB_REPOSITORY|" SECURITY.md          
           sed -i "s|project-template|${GITHUB_REPOSITORY:29}|" project-template/build.gradle
           sed -i "s|project-template|${GITHUB_REPOSITORY:29}|" project-template-bom/build.gradle
           sed -i "s|project-template|${GITHUB_REPOSITORY:29}|" buildSrc/src/main/groovy/io.micronaut.build.internal.project-template-module.gradle
@@ -35,7 +36,7 @@ jobs:
           git mv buildSrc/src/main/groovy/io.micronaut.build.internal.project-template-module.gradle "buildSrc/src/main/groovy/io.micronaut.build.internal.${GITHUB_REPOSITORY:29}-module.gradle"
           git mv buildSrc/src/main/groovy/io.micronaut.build.internal.project-template-base.gradle "buildSrc/src/main/groovy/io.micronaut.build.internal.${GITHUB_REPOSITORY:29}-base.gradle"          
           # Remove clean up template
-          rm -rf  .github/workflows/template-cleanup.yml 
+          rm -rf  .github/workflows/template-cleanup.yml
       # Commit modified files
       - name: Commit files
         run: |
