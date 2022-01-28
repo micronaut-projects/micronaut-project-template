@@ -7,7 +7,7 @@ Micronaut project-template
 
 ## Documentation
 
-See the [Documentation](https://micronaut-projects.github.io/micronaut-project-template/latest/guide/) for more information. 
+See the [Documentation](https://micronaut-projects.github.io/micronaut-project-template/latest/guide/) for more information.
 
 See the [Snapshot Documentation](https://micronaut-projects.github.io/micronaut-project-template/snapshot/guide/) for the current development docs.
 
