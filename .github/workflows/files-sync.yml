@@ -100,6 +100,7 @@ jobs:
             gradlew*
             .gitignore
             MAINTAINING.md
+            SECURITY.md
             LICENSE
             config/HEADER
             config/spotless.license.java
