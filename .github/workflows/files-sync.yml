@@ -24,6 +24,7 @@ jobs:
           - data
           - discovery-client
           - elasticsearch
+          - email
           - flyway
           - gcp
           - gradle-plugin
@@ -64,6 +65,8 @@ jobs:
           - spring
           - sql
           - test
+          - toml
+          - tracing
           - views
     steps:
       - name: Checkout source
