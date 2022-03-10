@@ -1,3 +1,5 @@
+<!-- Checklist: https://github.com/micronaut-projects/micronaut-core/wiki/New-Module-Checklist -->
+
 # Micronaut project-template
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.micronaut.project-template/micronaut-project-template.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.micronaut.project-template%22%20AND%20a:%22micronaut-project-template%22)
