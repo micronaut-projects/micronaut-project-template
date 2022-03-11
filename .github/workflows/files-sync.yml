@@ -56,7 +56,7 @@ jobs:
           - reactor
           - redis
           - rss
-          - rxjava2          
+          - rxjava2
           - rxjava3
           - security
           - serialization
@@ -97,10 +97,14 @@ jobs:
           done <<< "$FILES"
         env:
           FILES: |-
+            .gitignore
             .github/dependabot.yml
+            .github/ISSUE_TEMPLATE/bug_report.yaml
+            .github/ISSUE_TEMPLATE/config.yml
+            .github/ISSUE_TEMPLATE/new_feature.yaml
+            .github/ISSUE_TEMPLATE/other.yaml
             gradle/*
             gradlew*
-            .gitignore
             MAINTAINING.md
             SECURITY.md
             LICENSE
@@ -108,10 +112,6 @@ jobs:
             config/spotless.license.java
             config/checkstyle/checkstyle.xml
             config/checkstyle/suppressions.xml
-            .github/ISSUE_TEMPLATE/bug_report.yaml
-            .github/ISSUE_TEMPLATE/config.yml
-            .github/ISSUE_TEMPLATE/new_feature.yaml
-            .github/ISSUE_TEMPLATE/other.yaml
       - name: Create Pull Request - ${{ steps.branch.outputs.branch }}
         uses: peter-evans/create-pull-request@v3.14.0
         with:
@@ -125,6 +125,19 @@ jobs:
           labels: "relates-to: build"
           branch: sync-files-${{ steps.branch.outputs.branch }}
           base: ${{ steps.branch.outputs.branch }}
-
-
-
+          add-paths: |
+            .gitignore
+            .github/dependabot.yml
+            .github/ISSUE_TEMPLATE/bug_report.yaml
+            .github/ISSUE_TEMPLATE/config.yml
+            .github/ISSUE_TEMPLATE/new_feature.yaml
+            .github/ISSUE_TEMPLATE/other.yaml
+            gradle/*
+            gradlew*
+            MAINTAINING.md
+            SECURITY.md
+            LICENSE
+            config/HEADER
+            config/spotless.license.java
+            config/checkstyle/checkstyle.xml
+            config/checkstyle/suppressions.xml
