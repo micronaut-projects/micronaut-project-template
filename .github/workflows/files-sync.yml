@@ -132,6 +132,7 @@ jobs:
             .github/ISSUE_TEMPLATE/config.yml
             .github/ISSUE_TEMPLATE/new_feature.yaml
             .github/ISSUE_TEMPLATE/other.yaml
+            .github/workflows/*
             gradle/*
             gradlew*
             MAINTAINING.md
