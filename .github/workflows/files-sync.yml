@@ -18,6 +18,7 @@ jobs:
           - azure
           - cache
           - cassandra
+          - chatbots
           - coherence
           - core
           - couchbase
