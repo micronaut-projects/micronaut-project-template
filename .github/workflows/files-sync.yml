@@ -43,6 +43,7 @@ jobs:
           - kubernetes
           - liquibase
           - micrometer
+          - microstream
           - mongodb
           - mqtt
           - multitenancy
