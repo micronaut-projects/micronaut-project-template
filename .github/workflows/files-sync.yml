@@ -103,7 +103,7 @@ jobs:
         env:
           FILES: |-
             .gitignore
-            .github/dependabot.yml
+            .github/renovate.json
             .github/ISSUE_TEMPLATE/bug_report.yaml
             .github/ISSUE_TEMPLATE/config.yml
             .github/ISSUE_TEMPLATE/new_feature.yaml
