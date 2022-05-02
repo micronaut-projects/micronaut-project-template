@@ -93,6 +93,7 @@ jobs:
         run: |
           mkdir -p target/.github/workflows/
           rsync --verbose --verbose  --archive -F "source/.github/workflows/" "target/.github/workflows/"
+          rm -f target/.github/dependabot.yml
       - name: Copy files from source to target branches
         run: |
           while IFS= read -r file; do
