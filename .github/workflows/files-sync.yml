@@ -134,6 +134,7 @@ jobs:
           add-paths: |
             .gitignore
             .github/renovate.json
+            .github/dependabot.yml
             .github/ISSUE_TEMPLATE/bug_report.yaml
             .github/ISSUE_TEMPLATE/config.yml
             .github/ISSUE_TEMPLATE/new_feature.yaml
