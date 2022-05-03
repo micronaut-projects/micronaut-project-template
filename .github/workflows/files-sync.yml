@@ -94,6 +94,9 @@ jobs:
           mkdir -p target/.github/workflows/
           rsync --verbose --verbose  --archive -F "source/.github/workflows/" "target/.github/workflows/"
           rm -f target/.github/dependabot.yml
+          rm -f target/.github/stale.yml
+          rm -f target/.github/release-drafter.yml
+          rm -f target/workflows/dependency-update.yml
       - name: Copy files from source to target branches
         run: |
           while IFS= read -r file; do
@@ -133,12 +136,8 @@ jobs:
           base: ${{ steps.branch.outputs.branch }}
           add-paths: |
             .gitignore
-            .github/renovate.json
-            .github/dependabot.yml
-            .github/ISSUE_TEMPLATE/bug_report.yaml
-            .github/ISSUE_TEMPLATE/config.yml
-            .github/ISSUE_TEMPLATE/new_feature.yaml
-            .github/ISSUE_TEMPLATE/other.yaml
+            .github/*
+            .github/ISSUE_TEMPLATE/*
             .github/workflows/*
             gradle/*
             gradlew*
