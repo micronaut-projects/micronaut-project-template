@@ -6,10 +6,14 @@ pluginManagement {
 }
 
 plugins {
-    id 'io.micronaut.build.shared.settings' version '5.3.5'
+    id 'io.micronaut.build.shared.settings' version '5.3.6'
 }
 
 rootProject.name = 'project-template-parent'
 
 include 'project-template'
 include 'project-template-bom'
+
+micronautBuild {
+    importMicronautCatalog()
+}
