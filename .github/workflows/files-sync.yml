@@ -28,7 +28,6 @@ jobs:
           - email
           - flyway
           - gcp
-          - gradle-plugin
           - graphql
           - groovy
           - grpc
