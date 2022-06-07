@@ -106,6 +106,8 @@ jobs:
           done <<< "$FILES"
         env:
           FILES: |-
+            .editorconfig
+            .gitattributes
             .gitignore
             .github/renovate.json
             .github/release.yml
@@ -136,6 +138,8 @@ jobs:
           branch: sync-files-${{ steps.branch.outputs.branch }}
           base: ${{ steps.branch.outputs.branch }}
           add-paths: |
+            .editorconfig
+            .gitattributes
             .gitignore
             .github/*
             .github/ISSUE_TEMPLATE/*
