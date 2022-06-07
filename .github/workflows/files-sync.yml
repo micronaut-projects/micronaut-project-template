@@ -66,6 +66,7 @@ jobs:
           - spring
           - sql
           - test
+          - test-resources
           - toml
           - tracing
           - views
