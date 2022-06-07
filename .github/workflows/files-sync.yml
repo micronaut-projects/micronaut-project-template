@@ -69,6 +69,7 @@ jobs:
           - test-resources
           - toml
           - tracing
+          - validation
           - views
     steps:
       - name: Checkout source
