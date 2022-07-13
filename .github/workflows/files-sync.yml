@@ -48,6 +48,7 @@ jobs:
           - multitenancy
           - nats
           - neo4j
+          - object-storage
           - openapi
           - oracle-cloud
           - picocli
