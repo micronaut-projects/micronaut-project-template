@@ -57,6 +57,22 @@ Once you are satisfied with your changes:
 - Push your changes to your remote branch on GitHub
 - Send us a [pull request](https://help.github.com/articles/creating-a-pull-request)
 
+## Merging a pull request
+
+Before we merge into a module's `master` branch a PR, we have to consider. 
+
+Can this PR be merged into a patch release (e.g. documentation fixes, bug fix, patch transitive dependency upgrade, breaking change due to security, Github actions sync, Micronaut Build Plugin upgrade)?
+
+Should this PR be merged into the next minor version of the module? For example, a new feature, a new module, or a minor transitive dependency upgrade.
+
+If the PR is going into the next minor version of the module, we need to release a patch version, and branch off `master` a new branch for the current minor module's version. If the `gradle.properties`'s `projectVersion` is 3.1.2-SNAPSHOT the branch should be named 3.1.x, and we push it to Github. If `master` contains only commits such as Github actions sync (no commits with benefits to users), we can branch off without doing a patch release. 
+
+When you merge a PR which will go into the next Module's minor. 
+
+- Update `gradle.properties`'s `githubCoreBranch` to point to the next minor branch of Micronaut Core. 
+- Update `gradle.properties`'s `projectVersion` to the next minor snapshot. 
+- Upgrade the module to the latest version of Micronaut. 
+
 ## Checkstyle
 
 We want to keep the code clean, following good practices about organization, Javadoc, and style as much as possible.
