@@ -22,6 +22,7 @@ jobs:
           - coherence
           - core
           - couchbase
+          - crac
           - data
           - discovery-client
           - elasticsearch
