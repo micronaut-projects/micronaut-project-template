@@ -48,7 +48,7 @@ jobs:
           echo $GPG_FILE | base64 -d > secring.gpg
           # Publish both locally and to Sonatype.
           # The artifacts stored locally will be used to generate the SLSA provenance.
-          ./gradlew publishToMavenLocal publishToSonatype closeAndReleaseSonatypeStagingRepository
+          ./gradlew publishAllPublicationsToBuildRepository publishToSonatype closeAndReleaseSonatypeStagingRepository
           # Read the current version from gradle.properties.
           VERSION=$(./gradlew properties | grep 'version:' | awk '{print $2}')
           # Read the project group from gradle.properties.
@@ -59,16 +59,16 @@ jobs:
         id: hash
         run: |
           # Find the relevant published artifacts in the local repository.
-          ARTIFACTS=$(find ~/.m2/repository/${{ steps.publish.outputs.group }}/*/${{ steps.publish.outputs.version }}/* -regextype sed -regex '.*${{ steps.publish.outputs.version }}\(\.jar\|.*\.pom\)')
+          ARTIFACTS=$(find  build/repo/${{ steps.publish.outputs.group }}/*/${{ steps.publish.outputs.version }}/* -regextype sed -regex '\(.*\.jar\|.*\.pom\)')
           # Compute the hashes for the artifacts.
           echo "::set-output name=hashes::$(sha256sum $ARTIFACTS | base64 -w0)"
       - name: Upload build artifacts
         uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
         with:
           name: gradle-build-outputs
-          path: ~/.m2/repository/${{ steps.publish.outputs.group }}/*/${{ steps.publish.outputs.version }}/*
+          path: build/repo/${{ steps.publish.outputs.group }}/*/${{ steps.publish.outputs.version }}/*
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 5
       - name: Generate docs
         env:
           GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GRADLE_ENTERPRISE_ACCESS_KEY }}
