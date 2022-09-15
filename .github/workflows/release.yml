@@ -11,7 +11,6 @@ jobs:
   release:
     outputs:
       hashes: ${{ steps.hash.outputs.hashes }} # Computed hashes for build artifacts.
-      version: ${{ steps.publish.outputs.version }} # Artifact version read from gradle.properties.
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -135,17 +134,13 @@ jobs:
         uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741 # v3.0.0
         with:
           name: gradle-build-outputs
-          path: dist
+          path: build/repo
       - name: Upload assets
-        # Upload the artifacts and SLSA L3 provenance as assets to the existing release.
-        # The artifacts for each module are stored separately in a zip file. Note that
-        # the provenance will attest to the artifact files and not the aggregated zip file.
+        # Upload the artifacts and SLSA L3 provenance as assets to the existing
+        # release. Note that the provenance will attest to each artifact file and
+        # not the aggregated ZIP file.
         run: |
-          ARTIFACTS=""
-          for dir in dist/* ; do
-            zip -j `basename $dir`.zip $dir/${{ needs.release.outputs.version }}/*
-            ARTIFACTS="$ARTIFACTS `basename $dir`.zip"
-          done
-          gh release upload ${{ github.ref_name }} $ARTIFACTS          
+          find build/repo -regextype sed -regex '\(.*\.jar\|.*\.pom\)' | xargs zip artifacts.zip
+          gh release upload ${{ github.ref_name }} artifacts.zip
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
