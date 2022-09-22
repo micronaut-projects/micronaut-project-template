@@ -58,7 +58,8 @@ jobs:
         id: hash
         run: |
           # Find the relevant published artifacts in the local repository.
-          ARTIFACTS=$(find  build/repo/${{ steps.publish.outputs.group }}/*/${{ steps.publish.outputs.version }}/* -regextype sed -regex '\(.*\.jar\|.*\.pom\)')
+          ARTIFACTS=$(find  build/repo/${{ steps.publish.outputs.group }}/*/${{ steps.publish.outputs.version }}/* \
+              -regextype sed -regex '\(.*\.jar\|.*\.pom\|.*\.module\|.*\.toml\)')
           # Compute the hashes for the artifacts.
           echo "::set-output name=hashes::$(sha256sum $ARTIFACTS | base64 -w0)"
       - name: Upload build artifacts
@@ -140,7 +141,7 @@ jobs:
         # release. Note that the provenance will attest to each artifact file and
         # not the aggregated ZIP file.
         run: |
-          find build/repo -regextype sed -regex '\(.*\.jar\|.*\.pom\)' | xargs zip artifacts.zip
+          find build/repo -regextype sed -regex '\(.*\.jar\|.*\.pom\|.*\.module\|.*\.toml\)' | xargs zip artifacts.zip
           gh release upload ${{ github.ref_name }} artifacts.zip
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
