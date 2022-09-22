@@ -13,10 +13,10 @@ on:
 jobs:
 
   pre-build:
-    if: github.repository != 'micronaut-projects/micronaut-project-template'
     strategy:
       matrix:
         java: ['8', '11', '17']
+    if: github.repository != 'micronaut-projects/micronaut-project-template'
     uses: micronaut-projects/micronaut-project-template/.github/workflows/reusable/gradle-pre-build.yml@master
     with:
       java: ${{ matrix.java }}
@@ -25,12 +25,11 @@ jobs:
 #  ./gradlew check --no-daemon --parallel --continue
 
   build:
-    if: github.repository != 'micronaut-projects/micronaut-project-template'
-    needs: "pre-build (${{ matrix.java }})"
-    runs-on: ubuntu-latest
     strategy:
       matrix:
         java: ['8', '11', '17']
+    needs: "pre-build (${{ matrix.java }})"
+    if: github.repository != 'micronaut-projects/micronaut-project-template'
     uses: micronaut-projects/micronaut-project-template/.github/workflows/reusable/gradle-build.yml@master
     with:
       build_command: |
