@@ -1,5 +1,6 @@
-#TODO: add this file to .rsync-filter once all the repos have this version
-#TODO: make it like with gradle.yml
+#TODO (in template-project): add this file to .rsync-filter once all the repos have this version
+#TODO (in template-project): make it like with gradle.yml
+#TODO (in a concrete module): remove comments when accepting this change
 name: GraalVM CE CI
 on:
   push:

@@ -1,4 +1,5 @@
-#TODO: add this file to .rsync-filter once all the repos have this version
+#TODO (in template-project): add this file to .rsync-filter once all the repos have this version
+#TODO (in a concrete module): remove comments when accepting this change
 name: Java CI
 on:
   push:
@@ -12,24 +13,25 @@ on:
 jobs:
 
   pre-build:
+    if: github.repository != 'micronaut-projects/micronaut-project-template'
     strategy:
       matrix:
         java: ['8', '11', '17']
     uses: micronaut-projects/micronaut-project-template/.github/workflows/reusable/gradle-pre-build.yml@master
-    secrets: inherit
     with:
       java: ${{ matrix.java }}
+    secrets: inherit
 
 #  ./gradlew check --no-daemon --parallel --continue
 
   build:
+    if: github.repository != 'micronaut-projects/micronaut-project-template'
     needs: "pre-build (${{ matrix.java }})"
     runs-on: ubuntu-latest
     strategy:
       matrix:
         java: ['8', '11', '17']
     uses: micronaut-projects/micronaut-project-template/.github/workflows/reusable/gradle-build.yml@master
-    secrets: inherit
     with:
       build_command: |
 #        Add additional variables as needed, for example:
@@ -37,10 +39,12 @@ jobs:
 #        export AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
 #        export AWS_REGION="${{ secrets.AWS_REGION }}"
         ./gradlew check --no-daemon --parallel --continue
+    secrets: inherit
 
   post-build:
+    if: github.repository != 'micronaut-projects/micronaut-project-template'
     needs: "build (${{ matrix.java }})"
     uses: micronaut-projects/micronaut-project-template/.github/workflows/reusable/gradle-post-build.yml@master
-    secrets: inherit
     with:
       java: ${{ matrix.java }}
+    secrets: inherit
