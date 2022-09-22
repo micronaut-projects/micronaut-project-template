@@ -3,3 +3,7 @@
 - update-gradle-wrapper.yml
 - .rsync-filter
 - template-cleanup.yml
+- reusable/gradle-build.yml
+- reusable/gradle-post-build.yml
+- reusable/gradle-pre-build.yml
+- reusable/sonarqube-build.yml

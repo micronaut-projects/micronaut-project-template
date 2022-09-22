@@ -12,67 +12,67 @@ jobs:
       max-parallel: 3
       matrix:
         repo:
-          - acme
-          - aot
+#          - acme
+#          - aot
           - aws
           - azure
-          - cache
-          - cassandra
-          - chatbots
-          - coherence
+#          - cache
+#          - cassandra
+#          - chatbots
+#          - coherence
           - core
-          - couchbase
-          - crac
+#          - couchbase
+#          - crac
           - data
-          - discovery-client
-          - elasticsearch
-          - email
-          - flyway
+#          - discovery-client
+#          - elasticsearch
+#          - email
+#          - flyway
           - gcp
-          - graphql
-          - groovy
-          - grpc
-          - hibernate-validator
-          - ignite
-          - jackson-xml
-          - jaxrs
-          - jms
-          - jmx
-          - kafka
-          - kotlin
+#          - graphql
+#          - groovy
+#          - grpc
+#          - hibernate-validator
+#          - ignite
+#          - jackson-xml
+#          - jaxrs
+#          - jms
+#          - jmx
+#          - kafka
+#          - kotlin
           - kubernetes
-          - liquibase
-          - micrometer
-          - microstream
-          - mongodb
-          - mqtt
-          - multitenancy
-          - nats
-          - neo4j
+#          - liquibase
+#          - micrometer
+#          - microstream
+#          - mongodb
+#          - mqtt
+#          - multitenancy
+#          - nats
+#          - neo4j
           - object-storage
-          - openapi
+#          - openapi
           - oracle-cloud
-          - picocli
-          - problem-json
-          - pulsar
-          - r2dbc
-          - rabbitmq
-          - reactor
-          - redis
-          - rss
-          - rxjava2
-          - rxjava3
-          - security
-          - serialization
-          - servlet
-          - spring
-          - sql
-          - test
-          - test-resources
-          - toml
-          - tracing
-          - validation
-          - views
+#          - picocli
+#          - problem-json
+#          - pulsar
+#          - r2dbc
+#          - rabbitmq
+#          - reactor
+#          - redis
+#          - rss
+#          - rxjava2
+#          - rxjava3
+#          - security
+#          - serialization
+#          - servlet
+#          - spring
+#          - sql
+#          - test
+#          - test-resources
+#          - toml
+#          - tracing
+#          - validation
+#          - views
     steps:
       - name: Checkout source
         uses: actions/checkout@v3
@@ -95,11 +95,11 @@ jobs:
       - name: Sync workflows
         run: |
           mkdir -p target/.github/workflows/
+          #Only if .rsync-filter doesn't work, and only after all the repos have the new version
+          #rm source/gradle.yml source/graalvm.yml source/sonarqube
           rsync --verbose --verbose  --archive -F "source/.github/workflows/" "target/.github/workflows/"
-          rm -f target/.github/dependabot.yml
-          rm -f target/.github/stale.yml
-          rm -f target/.github/release-drafter.yml
-          rm -f target/.github/workflows/dependency-update.yml
+          #Only if .rsync-filter doesn't work
+          #rm -f target/.github/reusable
       - name: Copy files from source to target branches
         run: |
           while IFS= read -r file; do
