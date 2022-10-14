@@ -65,6 +65,7 @@ jobs:
           - security
           - serialization
           - servlet
+          - session
           - spring
           - sql
           - test
