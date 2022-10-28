@@ -104,9 +104,10 @@ jobs:
       - name: Copy files from source to target branches
         run: |
           while IFS= read -r file; do
-              dest="$(dirname $file)"
-              mkdir -p target/$dest
-              [ ! -f target/${dest}.lock ] && cp -r source/$file target/$dest
+              dest_dirname="$(dirname $file)"
+              dest_filename="$(basename $file)"
+              mkdir -p target/$dest_dirname
+              [ ! -f target/${dest_dirname}/${dest_filename}.lock ] && cp source/$file target/${dest_dirname}/${dest_filename}
           done <<< "$FILES"
         env:
           FILES: |-
@@ -119,8 +120,10 @@ jobs:
             .github/ISSUE_TEMPLATE/config.yml
             .github/ISSUE_TEMPLATE/new_feature.yaml
             .github/ISSUE_TEMPLATE/other.yaml
-            gradle/wrapper/*
-            gradlew*
+            gradle/wrapper/gradle-wrapper.jar
+            gradle/wrapper/gradle-wrapper.properties
+            gradlew
+            gradlew.bat
             MAINTAINING.md
             SECURITY.md
             LICENSE
