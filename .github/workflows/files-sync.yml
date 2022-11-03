@@ -16,6 +16,7 @@ jobs:
           - aot
           - aws
           - azure
+          - bom
           - cache
           - cassandra
           - chatbots
