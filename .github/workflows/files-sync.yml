@@ -16,7 +16,6 @@ jobs:
           - aot
           - aws
           - azure
-          - bom
           - cache
           - cassandra
           - chatbots
@@ -54,6 +53,7 @@ jobs:
           - openapi
           - oracle-cloud
           - picocli
+          - platform
           - problem-json
           - pulsar
           - r2dbc
