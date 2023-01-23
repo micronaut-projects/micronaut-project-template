@@ -19,8 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        java: [ '17' ]
-        graalvm: [ 'latest', 'dev' ]
+        java: ['17']
+        graalvm: ['latest', 'dev']
         include:
           - graalvm: 'dev'
             java: '19'
