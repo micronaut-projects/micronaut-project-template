@@ -93,7 +93,7 @@ jobs:
         run: |
           branch=$(git rev-parse --abbrev-ref HEAD)
           echo "Current branch: ${branch}"
-          echo "name=branch::${branch}" >> $GITHUB_OUTPUT
+          echo "branch=${branch}" >> $GITHUB_OUTPUT
       - name: Sync workflows
         run: |
           mkdir -p target/.github/workflows/
@@ -134,7 +134,7 @@ jobs:
             config/checkstyle/suppressions.xml
       - name: Sleep for 3 minutes to avoid rate limiting
         run: sleep 180s
-        shell: bash 
+        shell: bash
       - name: Create Pull Request - ${{ steps.branch.outputs.branch }}
         uses: peter-evans/create-pull-request@v4
         with:
