@@ -101,6 +101,7 @@ jobs:
           rm -f target/.github/dependabot.yml
           rm -f target/.github/stale.yml
           rm -f target/.github/release-drafter.yml
+          rm -f target/.github/workflows/release-notes.yml
           rm -f target/.github/workflows/dependency-update.yml
       - name: Copy files from source to target branches
         run: |
