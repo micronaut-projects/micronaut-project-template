@@ -1,8 +1,7 @@
 name: Files sync
 on:
-  push:
-    branches:
-      - master
+  schedule:
+    - cron: '0 5 * * SAT'
 jobs:
   sync-files:
     if: github.repository == 'micronaut-projects/micronaut-project-template'
