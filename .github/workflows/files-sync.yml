@@ -20,7 +20,6 @@ jobs:
           - chatbots
           - coherence
           - core
-          - couchbase
           - crac
           - data
           - discovery-client
@@ -32,7 +31,6 @@ jobs:
           - groovy
           - grpc
           - hibernate-validator
-          - ignite
           - jackson-xml
           - jaxrs
           - jms
@@ -102,6 +100,8 @@ jobs:
           rm -f target/.github/release-drafter.yml
           rm -f target/.github/workflows/release-notes.yml
           rm -f target/.github/workflows/dependency-update.yml
+          rm -f target/.github/workflows/graalvm.yml
+          rm -f target/.github/workflows/sonarqube.yml
       - name: Copy files from source to target branches
         run: |
           while IFS= read -r file; do
