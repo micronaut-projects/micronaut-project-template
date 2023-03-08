@@ -44,7 +44,7 @@ jobs:
           components: 'native-image'
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Gradle
-        uses: gradle/gradle-build-action@v2.4.0
+        uses: gradle/gradle-build-action@v2
       - name: Build with Gradle
         id: gradle
         run: |
@@ -64,7 +64,7 @@ jobs:
            PREDICTIVE_TEST_SELECTION: "${{ github.event_name == 'pull_request' && 'true' || 'false' }}"
       - name: Publish Test Report
         if: always()
-        uses: mikepenz/action-junit-report@v3.7.5
+        uses: mikepenz/action-junit-report@v3
         with:
           check_name: GraalVM CE CI / Test Report (Java ${{ matrix.java }})
           report_paths: '**/build/test-results/test/TEST-*.xml'
