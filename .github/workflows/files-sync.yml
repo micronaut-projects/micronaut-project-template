@@ -20,7 +20,6 @@ jobs:
           - chatbots
           - coherence
           - core
-          - couchbase
           - crac
           - data
           - discovery-client
@@ -32,7 +31,6 @@ jobs:
           - groovy
           - grpc
           - hibernate-validator
-          - ignite
           - jackson-xml
           - jaxrs
           - jms
