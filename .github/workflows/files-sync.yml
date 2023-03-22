@@ -39,6 +39,7 @@ jobs:
           - kotlin
           - kubernetes
           - liquibase
+          - logging
           - micrometer
           - microstream
           - mongodb
