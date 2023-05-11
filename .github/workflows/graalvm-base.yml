@@ -3,19 +3,22 @@
 # https://github.com/micronaut-projects/micronaut-project-template/tree/master/.github/workflows
 #
 # and edit them there. Note that it will be sync'ed to all the Micronaut repos
-name: GraalVM Dev CI
+name: GraalVM CI
 on:
-  schedule:
-    - cron: "0 1 * * 1-5" # Mon-Fri at 1am UTC
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      graalvm:
+        description: 'graalvm version passed from the caller workflow'
+        required: true
+        type: string
+      java:
+        description: 'java version passed from the caller workflow'
+        required: true
+        type: string
 jobs:
   build:
     if: github.repository != 'micronaut-projects/micronaut-project-template'
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        graalvm: [ 'dev']
-        java: ['17']
     env:
       GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GRADLE_ENTERPRISE_ACCESS_KEY }}
       GRADLE_ENTERPRISE_CACHE_USERNAME: ${{ secrets.GRADLE_ENTERPRISE_CACHE_USERNAME }}
@@ -26,13 +29,13 @@ jobs:
       PREDICTIVE_TEST_SELECTION: "${{ github.event_name == 'pull_request' && 'true' || 'false' }}"
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-       # https://github.com/actions/virtual-environments/issues/709
+      # https://github.com/actions/virtual-environments/issues/709
       - name: "🗑 Free disk space"
         run: |
-         sudo rm -rf "/usr/local/share/boost"
-         sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-         sudo apt-get clean
-         df -h
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo apt-get clean
+          df -h
 
       - name: "📥 Checkout repository"
         uses: actions/checkout@v3
@@ -42,8 +45,8 @@ jobs:
       - name: "🔧 Setup GraalVM CE"
         uses: graalvm/setup-graalvm@v1
         with:
-          version: ${{ matrix.graalvm }}
-          java-version: ${{ matrix.java }}
+          version: ${{ inputs.graalvm }}
+          java-version: ${{ inputs.java }}
           components: 'native-image'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -57,13 +60,16 @@ jobs:
       - name: "🛠 Build with Gradle"
         id: gradle
         run: |
-          ./gradlew check --no-daemon --continue
+          if ./gradlew tasks --no-daemon --all | grep -w "nativeTest"
+          then
+            ./gradlew nativeTest --no-daemon --continue
+          fi
 
       - name: "📊 Publish Test Report"
         if: always()
         uses: mikepenz/action-junit-report@v3
         with:
-          check_name: Java CI / Test Report (${{ matrix.java }})
+          check_name: Java CI / Test Report (${{ inputs.java }})
           report_paths: '**/build/test-results/test/TEST-*.xml'
           check_retries: 'true'
 
