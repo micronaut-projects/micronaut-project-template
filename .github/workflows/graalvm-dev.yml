@@ -8,13 +8,36 @@ on:
   schedule:
     - cron: "0 1 * * 1-5" # Mon-Fri at 1am UTC
 jobs:
-  call-graalvm-base:
+  build:
+    if: github.repository != 'micronaut-projects/micronaut-project-template'
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         graalvm: [ 'dev' ]
         java: [ '17' ]
-    uses: ./.github/workflows/graalvm-base.yml
-    with:
-      graalvm: ${{ matrix.graalvm }}
-      java: ${{ matrix.java }}
-    secrets: inherit
+    steps:
+      - uses: actions/checkout@v3
+      - name: Pre-Build Steps
+        uses: micronaut-projects/github-actions/graalvm/pre-build@master
+        id: pre-build
+        with:
+          graalvm: ${{ matrix.graalvm }}
+          java: ${{ matrix.java }}
+        env:
+          GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GRADLE_ENTERPRISE_ACCESS_KEY }}
+          GRADLE_ENTERPRISE_CACHE_USERNAME: ${{ secrets.GRADLE_ENTERPRISE_CACHE_USERNAME }}
+          GRADLE_ENTERPRISE_CACHE_PASSWORD: ${{ secrets.GRADLE_ENTERPRISE_CACHE_PASSWORD }}
+      - name: Build Steps
+        uses: micronaut-projects/github-actions/graalvm/build@master
+        id: build
+        env:
+          GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GRADLE_ENTERPRISE_ACCESS_KEY }}
+          GRADLE_ENTERPRISE_CACHE_USERNAME: ${{ secrets.GRADLE_ENTERPRISE_CACHE_USERNAME }}
+          GRADLE_ENTERPRISE_CACHE_PASSWORD: ${{ secrets.GRADLE_ENTERPRISE_CACHE_PASSWORD }}
+          GH_TOKEN_PUBLIC_REPOS_READONLY: ${{ secrets.GH_TOKEN_PUBLIC_REPOS_READONLY }}
+          GH_USERNAME: ${{ secrets.GH_USERNAME }}
+      - name: Post-Build Steps
+        uses: micronaut-projects/github-actions/graalvm/post-build@master
+        id: post-build
+        with:
+          java: ${{ matrix.java }}
