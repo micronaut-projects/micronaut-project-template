@@ -101,8 +101,9 @@ jobs:
           rm -f target/.github/release-drafter.yml
           rm -f target/.github/workflows/release-notes.yml
           rm -f target/.github/workflows/dependency-update.yml
-          rm -f target/.github/workflows/graalvm.yml
           rm -f target/.github/workflows/sonarqube.yml
+          rm -f target/.github/workflows/graalvm.yml
+          rm -f target/.github/workflows/files-sync.yml
       - name: Copy files from source to target branches
         run: |
           while IFS= read -r file; do
@@ -137,7 +138,7 @@ jobs:
         run: sleep 180s
         shell: bash
       - name: Create Pull Request - ${{ steps.branch.outputs.branch }}
-        uses: peter-evans/create-pull-request@v4
+        uses: peter-evans/create-pull-request@v5
         with:
           path: target
           token: ${{ secrets.GH_TOKEN }}
