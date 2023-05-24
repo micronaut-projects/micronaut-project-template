@@ -27,6 +27,8 @@ spock = "2.3-groovy-3.0"
 # managed-somebom = "1.1"
 
 [libraries]
+# Core
+micronaut-core = { module = 'io.micronaut:micronaut-core-bom', version.ref = 'micronaut' }
 
 #
 # Managed dependencies appear in the BOM
