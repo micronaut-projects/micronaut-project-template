@@ -102,8 +102,6 @@ jobs:
           rm -f target/.github/workflows/release-notes.yml
           rm -f target/.github/workflows/dependency-update.yml
           rm -f target/.github/workflows/sonarqube.yml
-          rm -f target/.github/workflows/graalvm.yml
-          rm -f target/.github/workflows/files-sync.yml
       - name: Copy files from source to target branches
         run: |
           while IFS= read -r file; do
