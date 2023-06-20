@@ -1,5 +1,7 @@
 name: Files sync
-on: workflow_dispatch
+on:
+  schedule:
+    - cron: '0 5 * * *'
 jobs:
   sync-files:
     if: github.repository == 'micronaut-projects/micronaut-project-template'
