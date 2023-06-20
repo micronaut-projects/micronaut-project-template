@@ -1,8 +1,5 @@
 name: Files sync
-on:
-  workflow_dispatch:
-    tags:
-      description: 'Trigger File sync manually'
+on: workflow_dispatch
 jobs:
   sync-files:
     if: github.repository == 'micronaut-projects/micronaut-project-template'
