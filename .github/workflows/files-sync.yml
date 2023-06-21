@@ -19,6 +19,7 @@ jobs:
           - cassandra
           - chatbots
           - coherence
+          - control-panel
           - core
           - crac
           - data
