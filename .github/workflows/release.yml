@@ -157,7 +157,7 @@ jobs:
           files: artifacts.zip
 
   post-release:
-    needs: [github-release]
+    needs: [github_release]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
