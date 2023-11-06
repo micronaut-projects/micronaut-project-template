@@ -21,11 +21,11 @@ Examples can be found in the [examples](https://github.com/micronaut-projects/mi
 
 ## Snapshots and Releases
 
-Snapshots are automatically published to [Sonatype Snapshots](https://s01.oss.sonatype.org/content/repositories/snapshots/io/micronaut/) using [Github Actions](https://github.com/micronaut-projects/micronaut-project-template/actions).
+Snapshots are automatically published to [Sonatype Snapshots](https://s01.oss.sonatype.org/content/repositories/snapshots/io/micronaut/) using [GitHub Actions](https://github.com/micronaut-projects/micronaut-project-template/actions).
 
 See the documentation in the [Micronaut Docs](https://docs.micronaut.io/latest/guide/index.html#usingsnapshots) for how to configure your build to use snapshots.
 
-Releases are published to Maven Central via [Github Actions](https://github.com/micronaut-projects/micronaut-project-template/actions).
+Releases are published to Maven Central via [GitHub Actions](https://github.com/micronaut-projects/micronaut-project-template/actions).
 
 Releases are completely automated. To perform a release use the following steps:
 

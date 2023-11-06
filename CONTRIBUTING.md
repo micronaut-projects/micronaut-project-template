@@ -8,7 +8,7 @@ If you are interested in contributing to Micronaut and are looking for issues to
 
 ## JDK Setup
 
-Micronaut project-template currently requires JDK 8.
+Micronaut project-template currently requires JDK 17.
 
 ## IDE Setup
 
@@ -59,19 +59,19 @@ Once you are satisfied with your changes:
 
 ## Merging a pull request
 
-Before we merge into a module's `master` branch a PR, we have to consider. 
+Before we merge into a module's `master` branch a PR, we have to consider.
 
-Can this PR be merged into a patch release (e.g. documentation fixes, bug fix, patch transitive dependency upgrade, breaking change due to security, Github actions sync, Micronaut Build Plugin upgrade)?
+Can this PR be merged into a patch release (e.g. documentation fixes, bug fix, patch transitive dependency upgrade, breaking change due to security, GitHub actions sync, Micronaut Build Plugin upgrade)?
 
 Should this PR be merged into the next minor version of the module? For example, a new feature, a new module, or a minor transitive dependency upgrade.
 
-If the PR is going into the next minor version of the module, we need to release a patch version, and branch off `master` a new branch for the current minor module's version. If the `gradle.properties`'s `projectVersion` is 3.1.2-SNAPSHOT the branch should be named 3.1.x, and we push it to Github. If `master` contains only commits such as Github actions sync (no commits with benefits to users), we can branch off without doing a patch release. 
+If the PR is going into the next minor version of the module, we need to release a patch version, and branch off `master` a new branch for the current minor module's version. If the `gradle.properties`'s `projectVersion` is 3.1.2-SNAPSHOT the branch should be named 3.1.x, and we push it to GitHub. If `master` contains only commits such as GitHub actions sync (no commits with benefits to users), we can branch off without doing a patch release.
 
-When you merge a PR which will go into the next Module's minor. 
+When you merge a PR which will go into the next Module's minor.
 
-- Update `gradle.properties`'s `githubCoreBranch` to point to the next minor branch of Micronaut Core. 
-- Update `gradle.properties`'s `projectVersion` to the next minor snapshot. 
-- Upgrade the module to the latest version of Micronaut. 
+- Update `gradle.properties`'s `githubCoreBranch` to point to the next minor branch of Micronaut Core.
+- Update `gradle.properties`'s `projectVersion` to the next minor snapshot.
+- Upgrade the module to the latest version of Micronaut.
 
 ## Checkstyle
 
@@ -93,6 +93,6 @@ In this case, to fix the issues, we need to:
 
 - Add one empty line before `package` in line 16
 - Add the Javadoc for the constructor in line 27
-- Add an space after `if` in line 34
+- Add a space after `if` in line 34
 
 The plugin also adds a new tab in the bottom of the IDE to run Checkstyle and show errors and warnings. We recommend that you run the report and fix all issues before submitting a pull request.
