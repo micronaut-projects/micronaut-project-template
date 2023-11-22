@@ -24,6 +24,7 @@ jobs:
           - crac
           - data
           - discovery-client
+          - eclipsestore
           - elasticsearch
           - email
           - flyway
