@@ -28,6 +28,7 @@ jobs:
           - elasticsearch
           - email
           - flyway
+          - fuzzing
           - gcp
           - graphql
           - groovy
