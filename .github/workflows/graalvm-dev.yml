@@ -29,13 +29,13 @@ jobs:
     strategy:
       max-parallel: 6
       matrix:
-        java: ['dev', '22-ea']
+        java: ['dev', 'latest-ea']
         distribution: ['graalvm-community', 'graalvm']
         native_test_task: ${{ fromJson(needs.build_matrix.outputs.matrix).native_test_task }}
         exclude:
           - java: 'dev'
             distribution: 'graalvm'
-          - java: '22-ea'
+          - java: 'latest-ea'
             distribution: 'graalvm-community'
     env:
       GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GRADLE_ENTERPRISE_ACCESS_KEY }}
