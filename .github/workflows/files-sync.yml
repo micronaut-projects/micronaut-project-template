@@ -38,6 +38,7 @@ jobs:
           - jaxrs
           - jms
           - jmx
+          - json-schema
           - kafka
           - kotlin
           - kubernetes
