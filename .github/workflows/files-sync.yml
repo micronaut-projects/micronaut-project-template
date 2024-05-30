@@ -33,6 +33,7 @@ jobs:
           - graphql
           - groovy
           - grpc
+          - guice
           - hibernate-validator
           - jackson-xml
           - jaxrs
