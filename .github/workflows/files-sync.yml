@@ -32,6 +32,7 @@ jobs:
           - gcp
           - graphql
           - groovy
+          - graal-languages
           - grpc
           - guice
           - hibernate-validator
