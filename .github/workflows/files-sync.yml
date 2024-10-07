@@ -44,6 +44,7 @@ jobs:
           - kafka
           - kotlin
           - kubernetes
+          - langchain4j
           - liquibase
           - logging
           - micrometer
