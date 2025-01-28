@@ -15,7 +15,7 @@ jobs:
           - aot
           - aws
           - azure
-          - build-plugin-sourcege
+          - build-plugin-sourcegen
           - cache
           - cassandra
           - chatbots
