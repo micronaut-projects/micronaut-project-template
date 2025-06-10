@@ -13,6 +13,7 @@ jobs:
         repo:
           - acme
           - aot
+          - avro
           - aws
           - azure
           - build-plugin-sourcegen
