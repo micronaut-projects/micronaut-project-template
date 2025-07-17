@@ -49,6 +49,7 @@ jobs:
           - langchain4j
           - liquibase
           - logging
+          - mcp
           - micrometer
           - microstream
           - mongodb
