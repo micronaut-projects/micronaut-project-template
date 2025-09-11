@@ -59,6 +59,7 @@ jobs:
           - neo4j
           - object-storage
           - openapi
+          - openrewrite          
           - opensearch
           - oracle-cloud
           - picocli
