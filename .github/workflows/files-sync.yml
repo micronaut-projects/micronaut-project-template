@@ -59,7 +59,7 @@ jobs:
           - neo4j
           - object-storage
           - openapi
-          - openrewrite          
+          - openrewrite
           - opensearch
           - oracle-cloud
           - picocli
@@ -126,6 +126,9 @@ jobs:
           done <<< "$FILES"
         env:
           FILES: |-
+            .clineignore
+            .clinerules/coding.md
+            .clinerules/docs.md
             .editorconfig
             .gitattributes
             .gitignore
@@ -163,6 +166,9 @@ jobs:
           branch: sync-files-${{ steps.branch.outputs.branch }}
           base: ${{ steps.branch.outputs.branch }}
           add-paths: |
+            .clineignore
+            .clinerules/coding.md
+            .clinerules/docs.md
             .editorconfig
             .gitattributes
             .gitignore
