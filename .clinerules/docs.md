@@ -5,7 +5,7 @@
 ## Development workflow
 - Write documentation in Asciidoc: Place source files in the appropriate `src/main/docs` directory.
 - Build and assemble the documentation guide: Use `./gradlew docs` from the root directory to generate HTML documentation. Since the output of this task may be huge, ignore the output and check the last process exit code to tell if it works. Otherwise, ask the user. If it works, verify the output for formatting and content accuracy.
-- Once assembled, the guide will be at build/docs/`.
+- Once assembled, the guide will be at `build/docs/`.
 - Include examples: Create and reference code examples from the doc-examples/ directory, ensuring they are testable and up-to-date with the latest service versions.
 - Test documentation: Run builds regularly and check for broken links or outdated information. Integrate doc checks into CI pipelines using Gradle tasks.
 - Review and update: Conduct peer reviews for new documentation or changes, ensuring alignment with coding standards and project updates.
