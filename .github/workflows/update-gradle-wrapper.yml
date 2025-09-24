@@ -26,9 +26,9 @@ jobs:
           echo "latest_version=${latest}" >> $GITHUB_OUTPUT
           ./gradlew wrapper --gradle-version $latest
       - uses: gradle/actions/wrapper-validation@v4
-      - uses: stefanzweifel/git-auto-commit-action@v6
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
         with:
           commit_message: Upgrade Gradle Wrapper to ${{ steps.update.outputs.latest_version }}
-          commit_user_name: micronaut-build
-          commit_user_email: ${{ secrets.MICRONAUT_BUILD_EMAIL }}
-          commit_author: micronaut-build <${{ secrets.MICRONAUT_BUILD_EMAIL }}>
+          committer: micronaut-build <${{ secrets.MICRONAUT_BUILD_EMAIL }}>
+          author: micronaut-build <${{ secrets.MICRONAUT_BUILD_EMAIL }}>
