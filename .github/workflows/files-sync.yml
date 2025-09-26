@@ -129,6 +129,8 @@ jobs:
             .clineignore
             .clinerules/coding.md
             .clinerules/docs.md
+            .github/instructions/coding.instructions.md
+            .github/instructions/docs.instructions.md
             .editorconfig
             .gitattributes
             .gitignore
@@ -169,6 +171,8 @@ jobs:
             .clineignore
             .clinerules/coding.md
             .clinerules/docs.md
+            .github/instructions/coding.instructions.md
+            .github/instructions/docs.instructions.md
             .editorconfig
             .gitattributes
             .gitignore
