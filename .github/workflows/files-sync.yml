@@ -116,6 +116,11 @@ jobs:
           rm -f target/.github/workflows/release-notes.yml
           rm -f target/.github/workflows/dependency-update.yml
           rm -f target/.github/workflows/sonarqube.yml
+      - name: Copy GitHub Copilot Agent coding instructions from Cline rules
+        run: |
+          mkdir -p target/.github/instructions/
+          cp source/.clinerules/coding.md target/.github/instructions/coding.instructions.md
+          cp source/.clinerules/docs.md target/.github/instructions/docs.instructions.md
       - name: Copy files from source to target branches
         run: |
           while IFS= read -r file; do
