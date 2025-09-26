@@ -1,1 +1,0 @@
-.clinerules/coding.md
