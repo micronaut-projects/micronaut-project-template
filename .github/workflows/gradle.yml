@@ -61,6 +61,7 @@ jobs:
           [ -f ./setup.sh ] && ./setup.sh || [ ! -f ./setup.sh ]
 
       - name: "🚔 Sonatype Scan"
+        if: secrets.OSS_INDEX_USERNAME != '' && secrets.OSS_INDEX_PASSWORD != ''
         id: sonatypescan
         run: |
           ./gradlew ossIndexAudit --no-parallel --info
