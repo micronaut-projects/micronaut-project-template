@@ -51,7 +51,6 @@ jobs:
           - logging
           - mcp
           - micrometer
-          - microstream
           - mongodb
           - mqtt
           - multitenancy
@@ -72,7 +71,6 @@ jobs:
           - reactor
           - redis
           - rss
-          - rxjava2
           - rxjava3
           - security
           - serialization
