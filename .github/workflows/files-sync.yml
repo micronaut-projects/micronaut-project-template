@@ -87,11 +87,11 @@ jobs:
           - views
     steps:
       - name: Checkout source
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           path: source
       - name: Checkout target - default branch
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: micronaut-projects/micronaut-${{ matrix.repo }}
           path: target
