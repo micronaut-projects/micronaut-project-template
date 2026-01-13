@@ -141,6 +141,7 @@ jobs:
             .github/ISSUE_TEMPLATE/config.yml
             .github/ISSUE_TEMPLATE/new_feature.yaml
             .github/ISSUE_TEMPLATE/other.yaml
+            .sdkmanrc
             gradle/wrapper/gradle-wrapper.jar
             gradle/wrapper/gradle-wrapper.properties
             gradlew
@@ -178,6 +179,7 @@ jobs:
             .github/*
             .github/ISSUE_TEMPLATE/*
             .github/workflows/*
+            .sdkmanrc
             gradle/*
             gradlew*
             MAINTAINING.md
