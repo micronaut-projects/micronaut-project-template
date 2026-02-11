@@ -6,9 +6,11 @@ This file provides **repository-local rules** for automated agents (OpenCode, GP
 
 ### 1.1 Published module naming and Gradle project paths
 
-- **Published modules** Will be automatically prefixed with **`micronaut-`** meaning that when running Gradle commands they must include `micronaut-` otherwise the command will fail.
+- **Published modules** Will be automatically prefixed with **`micronaut-`** meaning that when running Gradle commands the command must include `micronaut-` otherwise the command will fail.
 - **Test suites** MUST be prefixed with **`test-suite-`**.
+- **Documentation Examples** MUST be prefixed with **`doc-examples-`** for `java`, `kotlin`, `groovy` and `python` snippets.
 - This template may still contain placeholder module names like `project-template`, but repositories created from it will be renamed to the `micronaut-...` / `test-suite-...` convention.
+fail.
 
 Correct (published module):
 
@@ -174,23 +176,36 @@ public final class ConfigurationValidatorConfiguration {
 ## 4) Documentation requirements
 
 - Document new features in Asciidoc under `src/main/docs/guide`.
+- All the files are within `src/main/docs/guide`. In that directory, there is a `toc.yml` file that is used to generate the table of contents and decide which `.adoc` files are to be included.
 - Always verify doc output:
 
 ```bash
 ./gradlew docs
 ```
 
-### 4.1 Configuration snippets
+- Once assembled, the guide will be at `build/docs/`.
+- Include examples: Create and reference code examples from the doc-examples/ directory, ensuring they are testable and up-to-date with the latest service versions.
+- Test documentation: Run builds regularly and check for broken links or outdated information. Address any WARNINGS that occur during documentation builds.
+
+### 4.1 Documentation best practices
+- Follow Asciidoc conventions: Use consistent headings, lists, code blocks, and admonitions (e.g., NOTE, TIP, WARNING) for better readability.
+- Provide comprehensive coverage: Include installation instructions, configuration details, usage examples, error handling, and performance tips for each service.
+- Use practical examples: Incorporate runnable code snippets from doc-examples/ to demonstrate real-world usage, with clear explanations and expected outputs.
+- Ensure accessibility: Use descriptive alt text for images, maintain logical structure, and avoid jargon without explanations.
+- Version control: Document version-specific changes and maintain backward compatibility notes.
+- Security and best practices: Highlight secure usage patterns, such as proper authentication and data handling.
+
+### 4.2 Configuration snippets
 
 Use the `[configuration]` macro for configuration snippets.
 
-### 4.2 Usage examples and snippets
+### 4.3 Usage examples and snippets
 
 - Prefer multi-language examples.
 - Use `test-suite`, `test-suite-groovy`, `test-suite-kotlin` conventions where applicable.
 - Use the `snippet:` macro for including code.
 
-### 4.3 Dependency snippets
+### 4.4 Dependency snippets
 
 Do not hard-code Gradle/Maven dependency snippets; use the `dependency:` macro.
 
