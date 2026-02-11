@@ -2,29 +2,13 @@
 
 This file provides **repository-local rules** for automated agents (OpenCode, GPT-5.2, Claude, etc.) working in Micronaut Projects repositories created from this template.
 
-## 0) Template substitution / placeholders
-
-This template intentionally contains the string **`project-template`** in a number of places.
-When a new repository is created from the template, the workflow `.github/workflows/template-cleanup.yml` replaces:
-
-- `project-template` → the repository name **without** the `micronaut-` prefix
-
-Examples:
-
-- `micronaut-project-template` → `micronaut-validation`
-- `micronaut-project-template-bom` → `micronaut-validation-bom`
-- Gradle path `:micronaut-project-template:test` → `:micronaut-validation:test`
-
-When writing docs/examples in this template, prefer using `micronaut-project-template` so the final repo reads correctly after substitution.
-
 ## 1) Build + verification rules (non-negotiable)
 
 ### 1.1 Published module naming and Gradle project paths
 
-- **Published modules** MUST be prefixed with **`micronaut-`**.
+- **Published modules** Will be automatically prefixed with **`micronaut-`** meaning that when running Gradle commands they must include `micronaut-` otherwise the command will fail.
 - **Test suites** MUST be prefixed with **`test-suite-`**.
 - This template may still contain placeholder module names like `project-template`, but repositories created from it will be renamed to the `micronaut-...` / `test-suite-...` convention.
-- Therefore, when running module-scoped Gradle tasks, use the **actual Gradle project path** for the repository you are in.
 
 Correct (published module):
 
@@ -38,7 +22,7 @@ Incorrect (will not exist in repos created from this template):
 ./gradlew project-template:test
 ```
 
-If you are unsure of module names, check `settings.gradle(.kts)` and use the included project paths.
+If you are unsure of module names, use `./gradlew projects` to find actual project names.
 
 ### 1.2 Always pass verifications
 
@@ -53,14 +37,14 @@ This includes (but is not limited to) Checkstyle, Spotless, and documentation pu
 
 ### 1.3 Binary compatibility
 
-- Public API must remain binary compatible.
+- Public API must remain binary compatible unless the next versions is a new major version.
 - Verify with:
 
 ```bash
 ./gradlew japiCmp
 ```
 
-If adding a **new module**, enable binary compatibility checks starting from the next release:
+If adding a **new module**, enable binary compatibility checks starting from the next release, for example:
 
 ```groovy
 micronautBuild {
