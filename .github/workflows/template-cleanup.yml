@@ -27,6 +27,7 @@ jobs:
           sed -i "s|project-template|${GITHUB_REPOSITORY:29}|" gradle.properties
           sed -i "s|project-template|${GITHUB_REPOSITORY:29}|" CONTRIBUTING.md
           sed -i "s|project-template|${GITHUB_REPOSITORY:29}|" MAINTAINING.md
+          sed -i "s|project-template|${GITHUB_REPOSITORY:29}|" AGENTS.md
           sed -i "s|micronaut-projects/micronaut-project-template|$GITHUB_REPOSITORY|" SECURITY.md
           sed -i "s|project-template|${GITHUB_REPOSITORY:29}|" project-template/build.gradle
           sed -i "s|project-template|${GITHUB_REPOSITORY:29}|" project-template-bom/build.gradle
