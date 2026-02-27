@@ -116,6 +116,8 @@ jobs:
           rm -f target/.github/workflows/release-notes.yml
           rm -f target/.github/workflows/dependency-update.yml
           rm -f target/.github/workflows/sonarqube.yml
+          # update-skills.yml is intended to run only in micronaut-projects/micronaut-project-template,
+          # so remove it from target repositories even though workflows are synced from the template.
           rm -f target/.github/workflows/update-skills.yml
           rm -f target/.github/instructions/coding.instructions.md
           rm -f target/.github/instructions/docs.instructions.md
