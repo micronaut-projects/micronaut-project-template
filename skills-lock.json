@@ -6,11 +6,6 @@
       "sourceType": "github",
       "computedHash": "51c53259bba830ebad6741b2ab69d213d5a4d02835f7f27925a0e4e93515fc22"
     },
-    "agents-md": {
-      "source": "getsentry/skills",
-      "sourceType": "github",
-      "computedHash": "3396f2a758bca4adab4fcfff070105da71732b7da38fdc1402d5e3994f3b0a02"
-    },
     "skill-creator": {
       "source": "getsentry/skills",
       "sourceType": "github",
