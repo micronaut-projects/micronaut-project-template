@@ -114,6 +114,7 @@ jobs:
           rm -f target/.github/workflows/release-notes.yml
           rm -f target/.github/workflows/dependency-update.yml
           rm -f target/.github/workflows/sonarqube.yml
+          rm -f target/.github/workflows/update-skills.yml
       - name: Copy GitHub Copilot Agent coding instructions from Cline rules
         run: |
           mkdir -p target/.github/instructions/
@@ -153,6 +154,15 @@ jobs:
             config/spotless.license.java
             config/checkstyle/checkstyle.xml
             config/checkstyle/suppressions.xml
+      - name: Copy local skills from source to target branches
+        run: |
+          if [ -d source/.agents/skills ]; then
+              mkdir -p target/.agents/skills/
+              rsync --archive --verbose "source/.agents/skills/" "target/.agents/skills/"
+          fi
+          if [ -f source/skills-lock.json ]; then
+              cp source/skills-lock.json target/skills-lock.json
+          fi
       - name: Sleep for 3 minutes to avoid rate limiting
         run: sleep 180s
         shell: bash
@@ -179,6 +189,8 @@ jobs:
             .github/*
             .github/ISSUE_TEMPLATE/*
             .github/workflows/*
+            .agents/skills/**
+            skills-lock.json
             .sdkmanrc
             gradle/*
             gradlew*

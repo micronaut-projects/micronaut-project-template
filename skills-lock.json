@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "skills": {
+    "agents-md": {
+      "source": "getsentry/skills",
+      "sourceType": "github",
+      "computedHash": "3396f2a758bca4adab4fcfff070105da71732b7da38fdc1402d5e3994f3b0a02"
+    },
+    "skill-creator": {
+      "source": "getsentry/skills",
+      "sourceType": "github",
+      "computedHash": "2d45c6e41218d27749151b09b59dab5fb902f93b97c15fe1e33bd042cb7bb9fd"
+    }
+  }
+}
