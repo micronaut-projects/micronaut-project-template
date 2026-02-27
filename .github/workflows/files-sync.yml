@@ -108,6 +108,8 @@ jobs:
         run: |
           mkdir -p target/.github/workflows/
           rsync --verbose --verbose  --archive -F "source/.github/workflows/" "target/.github/workflows/"
+          rm -f target/.clineignore
+          rm -rf target/.clinerules
           rm -f target/.github/dependabot.yml
           rm -f target/.github/stale.yml
           rm -f target/.github/release-drafter.yml
@@ -115,11 +117,9 @@ jobs:
           rm -f target/.github/workflows/dependency-update.yml
           rm -f target/.github/workflows/sonarqube.yml
           rm -f target/.github/workflows/update-skills.yml
-      - name: Copy GitHub Copilot Agent coding instructions from Cline rules
-        run: |
-          mkdir -p target/.github/instructions/
-          cp source/.clinerules/coding.md target/.github/instructions/coding.instructions.md
-          cp source/.clinerules/docs.md target/.github/instructions/docs.instructions.md
+          rm -f target/.github/instructions/coding.instructions.md
+          rm -f target/.github/instructions/docs.instructions.md
+          rmdir target/.github/instructions 2>/dev/null || true
       - name: Copy files from source to target branches
         run: |
           while IFS= read -r file; do
@@ -130,9 +130,6 @@ jobs:
           done <<< "$FILES"
         env:
           FILES: |-
-            .clineignore
-            .clinerules/coding.md
-            .clinerules/docs.md
             .editorconfig
             .gitattributes
             .gitignore
@@ -180,9 +177,6 @@ jobs:
           branch: sync-files-${{ steps.branch.outputs.branch }}
           base: ${{ steps.branch.outputs.branch }}
           add-paths: |
-            .clineignore
-            .clinerules/coding.md
-            .clinerules/docs.md
             .editorconfig
             .gitattributes
             .gitignore
