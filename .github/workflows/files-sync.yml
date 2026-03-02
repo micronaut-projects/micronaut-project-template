@@ -162,6 +162,15 @@ jobs:
               mkdir -p "target/${dest_dirname}"
               [ ! -f "target/${dest_dirname}/${dest_filename}.lock" ] && cp "source/${file}" "target/${dest_dirname}/${dest_filename}"
           done
+          if [ -d "target/.agents/skills" ]; then
+              find "target/.agents/skills" -type f ! -name "*.lock" -print0 | while IFS= read -r -d '' target_file; do
+                  rel_file="${target_file#target/}"
+                  if ! git -C source ls-files --error-unmatch "${rel_file}" >/dev/null 2>&1; then
+                      [ ! -f "${target_file}.lock" ] && rm -f "${target_file}"
+                  fi
+              done
+              find "target/.agents/skills" -mindepth 1 -type d -empty -delete
+          fi
       - name: Sleep for 3 minutes to avoid rate limiting
         run: sleep 180s
         shell: bash
