@@ -37,8 +37,8 @@ jobs:
 
           for skill_dir in "${skill_dirs[@]}"; do
             echo "Validating ${skill_dir}"
-            npx agent-skills-cli validate "${skill_dir}"
+            npx --yes agent-skills-cli@1.0.0 validate "${skill_dir}"
 
             echo "Auditing ${skill_dir}"
-            npx agent-skills-cli audit "${skill_dir}" --fail-on high --format summary
+            npx --yes agent-skills-cli@1.0.0 audit "${skill_dir}" --fail-on high --format summary
           done
