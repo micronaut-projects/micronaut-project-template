@@ -67,7 +67,7 @@ Set required fields:
 - `name`: lowercase, digits, hyphens; matches folder name
 - `description`: what the skill does and when to use it
 
-Optional fields are allowed only when useful: `license`, `compatibility`, `metadata`, `allowed-tools`.
+Common optional fields include `license`, `compatibility`, `metadata`, and `allowed-tools`. Additional frontmatter keys (for example, MCP or tooling configuration) are allowed when supported by the Agent Skills spec/validator, and may be nested under `metadata` when appropriate.
 
 Description guidance:
 
