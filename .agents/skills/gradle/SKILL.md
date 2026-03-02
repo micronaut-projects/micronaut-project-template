@@ -1,7 +1,7 @@
 ---
 name: gradle
 description: Execute Gradle maintainer operations for Micronaut repositories using micronaut-build internals and modern Gradle best practices. Use when users ask to diagnose build failures, maintain BOM/version catalogs, manage publishing/signing, enforce binary compatibility, or debug micronaut-build plugin behavior.
-license: MIT
+license: Apache-2.0
 compatibility: Micronaut framework repositories in micronaut-projects using micronaut-build plugins
 metadata:
   author: Álvaro Sánchez-Mariscal
