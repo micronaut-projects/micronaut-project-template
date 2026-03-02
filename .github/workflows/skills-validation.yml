@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      AGENT_SKILLS_CLI_VERSION: "1.1.7"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -37,8 +39,8 @@ jobs:
 
           for skill_dir in "${skill_dirs[@]}"; do
             echo "Validating ${skill_dir}"
-            npx agent-skills-cli validate "${skill_dir}"
+            npx --yes agent-skills-cli@${AGENT_SKILLS_CLI_VERSION} validate "${skill_dir}"
 
             echo "Auditing ${skill_dir}"
-            npx agent-skills-cli audit "${skill_dir}" --fail-on high --format summary
+            npx --yes agent-skills-cli@${AGENT_SKILLS_CLI_VERSION} audit "${skill_dir}" --fail-on high --format summary
           done
