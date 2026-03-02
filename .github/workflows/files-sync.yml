@@ -153,6 +153,15 @@ jobs:
             config/spotless.license.java
             config/checkstyle/checkstyle.xml
             config/checkstyle/suppressions.xml
+      - name: Copy all skills from source to target branches
+        run: |
+          git -C source ls-files '.agents/skills/**' | while IFS= read -r file; do
+              [ -z "$file" ] && continue
+              dest_dirname="$(dirname "$file")"
+              dest_filename="$(basename "$file")"
+              mkdir -p "target/${dest_dirname}"
+              [ ! -f "target/${dest_dirname}/${dest_filename}.lock" ] && cp "source/${file}" "target/${dest_dirname}/${dest_filename}"
+          done
       - name: Sleep for 3 minutes to avoid rate limiting
         run: sleep 180s
         shell: bash
@@ -176,6 +185,7 @@ jobs:
             .editorconfig
             .gitattributes
             .gitignore
+            .agents/skills
             .github/*
             .github/ISSUE_TEMPLATE/*
             .github/workflows/*
