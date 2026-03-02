@@ -148,13 +148,16 @@ jobs:
             config/checkstyle/suppressions.xml
       - name: Copy all skills from source to target branches
         run: |
-          git -C source ls-files '.agents/skills/**' | while IFS= read -r file; do
-              [ -z "$file" ] && continue
-              dest_dirname="$(dirname "$file")"
-              dest_filename="$(basename "$file")"
-              mkdir -p "target/${dest_dirname}"
-              [ ! -f "target/${dest_dirname}/${dest_filename}.lock" ] && cp "source/${file}" "target/${dest_dirname}/${dest_filename}"
-          done
+          rsync_args=(-a --delete --exclude='*.lock')
+          if [ -d "target/.agents/skills" ]; then
+              while IFS= read -r -d '' lock_file; do
+                  skill_file="${lock_file%.lock}"
+                  rel="${skill_file#target/.agents/skills/}"
+                  rsync_args+=(--exclude="$rel")
+              done < <(find "target/.agents/skills" -name "*.lock" -print0)
+          fi
+          mkdir -p target/.agents/skills
+          rsync "${rsync_args[@]}" source/.agents/skills/ target/.agents/skills/
       - name: Sleep for 3 minutes to avoid rate limiting
         run: sleep 180s
         shell: bash
