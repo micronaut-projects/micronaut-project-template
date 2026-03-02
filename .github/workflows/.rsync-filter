@@ -3,3 +3,4 @@
 - update-gradle-wrapper.yml
 - .rsync-filter
 - template-cleanup.yml
+- skills-validation.yml
