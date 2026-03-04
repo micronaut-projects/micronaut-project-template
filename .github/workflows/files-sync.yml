@@ -114,11 +114,6 @@ jobs:
           rm -f target/.github/workflows/release-notes.yml
           rm -f target/.github/workflows/dependency-update.yml
           rm -f target/.github/workflows/sonarqube.yml
-      - name: Copy GitHub Copilot Agent coding instructions from Cline rules
-        run: |
-          mkdir -p target/.github/instructions/
-          cp source/.clinerules/coding.md target/.github/instructions/coding.instructions.md
-          cp source/.clinerules/docs.md target/.github/instructions/docs.instructions.md
       - name: Copy files from source to target branches
         run: |
           while IFS= read -r file; do
@@ -130,8 +125,6 @@ jobs:
         env:
           FILES: |-
             .clineignore
-            .clinerules/coding.md
-            .clinerules/docs.md
             .editorconfig
             .gitattributes
             .gitignore
@@ -153,6 +146,18 @@ jobs:
             config/spotless.license.java
             config/checkstyle/checkstyle.xml
             config/checkstyle/suppressions.xml
+      - name: Copy all skills from source to target branches
+        run: |
+          rsync_args=(-a --delete --exclude='*.lock')
+          if [ -d "target/.agents/skills" ]; then
+              while IFS= read -r -d '' lock_file; do
+                  skill_file="${lock_file%.lock}"
+                  rel="${skill_file#target/.agents/skills/}"
+                  rsync_args+=(--exclude="$rel")
+              done < <(find "target/.agents/skills" -name "*.lock" -print0)
+          fi
+          mkdir -p target/.agents/skills
+          rsync "${rsync_args[@]}" source/.agents/skills/ target/.agents/skills/
       - name: Sleep for 3 minutes to avoid rate limiting
         run: sleep 180s
         shell: bash
@@ -171,11 +176,10 @@ jobs:
           base: ${{ steps.branch.outputs.branch }}
           add-paths: |
             .clineignore
-            .clinerules/coding.md
-            .clinerules/docs.md
             .editorconfig
             .gitattributes
             .gitignore
+            .agents/skills
             .github/*
             .github/ISSUE_TEMPLATE/*
             .github/workflows/*

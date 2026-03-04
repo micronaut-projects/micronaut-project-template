@@ -1,0 +1,46 @@
+name: Skills Validation and Security Audit
+
+on:
+  push:
+    paths:
+      - ".agents/skills/**"
+  pull_request:
+    paths:
+      - ".agents/skills/**"
+
+jobs:
+  validate-and-audit-skills:
+    if: github.repository == 'micronaut-projects/micronaut-project-template'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      AGENT_SKILLS_CLI_VERSION: "1.1.7"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+
+      - name: Validate and audit skill directories
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          skill_dirs=(.agents/skills/*/)
+          if [ ${#skill_dirs[@]} -eq 0 ]; then
+            echo "No skills found under .agents/skills"
+            exit 0
+          fi
+
+          for skill_dir in "${skill_dirs[@]}"; do
+            echo "Validating ${skill_dir}"
+            npx --yes agent-skills-cli@${AGENT_SKILLS_CLI_VERSION} validate "${skill_dir}"
+
+            echo "Auditing ${skill_dir}"
+            npx --yes agent-skills-cli@${AGENT_SKILLS_CLI_VERSION} audit "${skill_dir}" --fail-on high --format summary
+          done
