@@ -24,6 +24,9 @@
       ]
     },
     {
+      "allowedVersions": "!/.+-SNAPSHOT$/"
+    },
+    {
       "matchUpdateTypes": [
         "patch"
       ],
