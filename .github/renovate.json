@@ -24,6 +24,13 @@
       ]
     },
     {
+      "matchDatasources": [
+        "maven"
+      ],
+      "matchManagers": [
+        "maven",
+        "gradle"
+      ],
       "allowedVersions": "!/.+-SNAPSHOT$/"
     },
     {
