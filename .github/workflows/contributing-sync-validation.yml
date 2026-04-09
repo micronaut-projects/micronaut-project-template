@@ -30,5 +30,10 @@ jobs:
       - name: Test global CONTRIBUTING sync logic
         run: python3 test-scripts/test_global_contributing_sync.py
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+
       - name: Lint shared markdown content
-        run: npx --yes markdownlint-cli2 GLOBAL_CONTRIBUTING.md
+        run: npx --yes markdownlint-cli2@0.22.0 GLOBAL_CONTRIBUTING.md
