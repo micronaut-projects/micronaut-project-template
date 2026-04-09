@@ -5,18 +5,16 @@ This section is maintained centrally in `micronaut-project-template` and synced 
 
 Do not add repository-specific changes below the begin marker above. Add local contribution guidance before that marker instead.
 
-### Pull Request Expectations
+### Model Used (Required)
 
-- Include tests for behavioral changes.
-- Include documentation updates when user-facing behavior changes.
-- Link the pull request to the relevant issue when applicable.
-- Make sure CI is green before requesting review.
+Every PR must include a **Model Used** section specifying which AI model produced or assisted with the change. Include the provider, exact model ID/version, context window size, and any relevant capability details (e.g., reasoning mode, tool use). If no AI was used, write "None — human-authored". This applies to all contributors — human and AI alike.
 
-### Code Style
+### CI Must Pass
 
-Micronaut projects use Checkstyle and related build checks to keep code style consistent. Run the relevant Gradle verification tasks locally before opening a pull request.
+All tests must pass before a PR can be merged. Run them locally first and verify CI is green after pushing.
 
-### Branching and Release Awareness
+### Copilot Review
 
-When preparing or reviewing a change, make sure it targets the correct branch for the type of change being made so that patch, minor, and major releases stay aligned.
+We use [GitHub Copilot](https://docs.github.com/en/copilot/concepts/agents/code-review) for automated code review. Your PR must have **all Copilot comments addressed** before it can be merged. If Copilot leaves comments, fix or respond to each one and request a re-review.
+
 <!-- END MICRONAUT GLOBAL CONTRIBUTING -->
