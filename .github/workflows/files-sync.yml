@@ -158,6 +158,8 @@ jobs:
           fi
           mkdir -p target/.agents/skills
           rsync "${rsync_args[@]}" source/.agents/skills/ target/.agents/skills/
+      - name: Sync global CONTRIBUTING section
+        run: python3 test-scripts/test_global_contributing_sync.py --source-root source --target-root target --write
       - name: Sleep for 3 minutes to avoid rate limiting
         run: sleep 180s
         shell: bash
@@ -186,6 +188,7 @@ jobs:
             .sdkmanrc
             gradle/*
             gradlew*
+            CONTRIBUTING.md
             MAINTAINING.md
             SECURITY.md
             LICENSE
