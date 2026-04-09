@@ -139,6 +139,7 @@ jobs:
             gradle/wrapper/gradle-wrapper.properties
             gradlew
             gradlew.bat
+            CONTRIBUTING.md
             MAINTAINING.md
             SECURITY.md
             LICENSE
@@ -158,6 +159,48 @@ jobs:
           fi
           mkdir -p target/.agents/skills
           rsync "${rsync_args[@]}" source/.agents/skills/ target/.agents/skills/
+      - name: Sync global CONTRIBUTING section
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          source_root = Path('source')
+          target_root = Path('target')
+          target_file = target_root / 'CONTRIBUTING.md'
+          global_file = source_root / 'GLOBAL_CONTRIBUTING.md'
+          start_marker = '<!-- BEGIN MICRONAUT GLOBAL CONTRIBUTING: Managed by micronaut-project-template/GLOBAL_CONTRIBUTING.md. Do not add or modify content below this marker in this file; your changes will be replaced by the sync workflow. -->'
+          end_marker = '<!-- END MICRONAUT GLOBAL CONTRIBUTING -->'
+          newline = chr(10)
+
+          managed_block = global_file.read_text()
+          if not managed_block.endswith(newline):
+              managed_block += newline
+
+          if target_file.exists():
+              target_text = target_file.read_text()
+          else:
+              target_text = ''
+
+          start_index = target_text.find(start_marker)
+          end_index = target_text.find(end_marker)
+
+          if start_index != -1 and end_index != -1 and end_index >= start_index:
+              end_index += len(end_marker)
+              if end_index < len(target_text) and target_text[end_index:end_index + 1] == newline:
+                  end_index += 1
+              updated = target_text[:start_index].rstrip() + newline + newline + managed_block
+          else:
+              prefix = target_text.rstrip()
+              if prefix:
+                  updated = prefix + newline + newline + managed_block
+              else:
+                  updated = managed_block
+
+          if not updated.endswith(newline):
+              updated += newline
+
+          target_file.write_text(updated)
+          PY
       - name: Sleep for 3 minutes to avoid rate limiting
         run: sleep 180s
         shell: bash
@@ -186,6 +229,7 @@ jobs:
             .sdkmanrc
             gradle/*
             gradlew*
+            CONTRIBUTING.md
             MAINTAINING.md
             SECURITY.md
             LICENSE
