@@ -188,6 +188,7 @@ jobs:
             .sdkmanrc
             gradle/*
             gradlew*
+            CONTRIBUTING.md
             MAINTAINING.md
             SECURITY.md
             LICENSE
