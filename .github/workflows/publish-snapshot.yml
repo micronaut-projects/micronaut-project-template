@@ -9,6 +9,8 @@ jobs:
   build:
     if: github.repository != 'micronaut-projects/micronaut-project-template'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Remove system JDKs
         run: |
