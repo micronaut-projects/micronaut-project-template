@@ -11,6 +11,8 @@ jobs:
   build_matrix:
     if: github.repository != 'micronaut-projects/micronaut-project-template'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     env:
       DEVELOCITY_ACCESS_KEY: ${{ secrets.GRADLE_ENTERPRISE_ACCESS_KEY }}
       DEVELOCITY_CACHE_USERNAME: ${{ secrets.GRADLE_ENTERPRISE_CACHE_USERNAME }}
@@ -26,6 +28,9 @@ jobs:
     needs: build_matrix
     if: github.repository != 'micronaut-projects/micronaut-project-template'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
     strategy:
       max-parallel: 6
       matrix:
