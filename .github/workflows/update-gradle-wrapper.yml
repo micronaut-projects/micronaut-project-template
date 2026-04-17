@@ -25,7 +25,7 @@ jobs:
           latest=`curl -s https://services.gradle.org/versions/current | jq -cr ".version"`
           echo "latest_version=${latest}" >> $GITHUB_OUTPUT
           ./gradlew wrapper --gradle-version $latest
-      - uses: gradle/actions/wrapper-validation@39e147cb9de83bb9910b8ef8bd7fff0ee20fcd6f # v6
+      - uses: gradle/actions/wrapper-validation@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0 # v8
         with:
