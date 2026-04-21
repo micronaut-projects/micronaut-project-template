@@ -1,91 +1,135 @@
 name: Files sync
 on:
   workflow_dispatch:
+    inputs:
+      project_slug:
+        description: 'Project slug without the micronaut- prefix. Leave empty to sync every project.'
+        required: false
+        type: string
   schedule:
     - cron: '0 5 * * *'
 jobs:
+  prepare-matrix:
+    if: github.repository == 'micronaut-projects/micronaut-project-template'
+    runs-on: ubuntu-latest
+    outputs:
+      repos: ${{ steps.prepare.outputs.repos }}
+    steps:
+      - name: Prepare repository matrix
+        id: prepare
+        shell: bash
+        run: |
+          repos=(
+            acme
+            aot
+            avro
+            aws
+            azure
+            build-plugin-sourcegen
+            cache
+            cassandra
+            chatbots
+            coherence
+            control-panel
+            core
+            crac
+            data
+            discovery-client
+            eclipsestore
+            elasticsearch
+            email
+            flyway
+            fuzzing
+            gcp
+            graphql
+            groovy
+            graal-languages
+            grpc
+            guice
+            hibernate-validator
+            jackson-xml
+            jaxrs
+            jms
+            jmx
+            json-schema
+            kafka
+            kotlin
+            kubernetes
+            langchain4j
+            liquibase
+            logging
+            mcp
+            micrometer
+            mongodb
+            mqtt
+            multitenancy
+            nats
+            neo4j
+            object-storage
+            openapi
+            openrewrite
+            opensearch
+            oracle-cloud
+            picocli
+            platform
+            problem-json
+            projectgen
+            pulsar
+            r2dbc
+            rabbitmq
+            reactor
+            redis
+            rss
+            rxjava3
+            security
+            serialization
+            servlet
+            session
+            sourcegen
+            spring
+            sql
+            test
+            test-resources
+            toml
+            tracing
+            validation
+            views
+          )
+
+          slug="${{ github.event.inputs.project_slug }}"
+
+          if [ -n "${slug}" ]; then
+            for repo in "${repos[@]}"; do
+              if [ "${repo}" = "${slug}" ]; then
+                printf 'repos=["%s"]\n' "${slug}" >> "${GITHUB_OUTPUT}"
+                exit 0
+              fi
+            done
+
+            echo "Unknown project slug: ${slug}" >&2
+            exit 1
+          fi
+
+          json="["
+          for repo in "${repos[@]}"; do
+            if [ "${json}" != "[" ]; then
+              json+=","
+            fi
+            json+="\"${repo}\""
+          done
+          json+="]"
+
+          echo "repos=${json}" >> "${GITHUB_OUTPUT}"
+
   sync-files:
+    needs: prepare-matrix
     if: github.repository == 'micronaut-projects/micronaut-project-template'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       max-parallel: 3
       matrix:
-        repo:
-          - acme
-          - aot
-          - avro
-          - aws
-          - azure
-          - build-plugin-sourcegen
-          - cache
-          - cassandra
-          - chatbots
-          - coherence
-          - control-panel
-          - core
-          - crac
-          - data
-          - discovery-client
-          - eclipsestore
-          - elasticsearch
-          - email
-          - flyway
-          - fuzzing
-          - gcp
-          - graphql
-          - groovy
-          - graal-languages
-          - grpc
-          - guice
-          - hibernate-validator
-          - jackson-xml
-          - jaxrs
-          - jms
-          - jmx
-          - json-schema
-          - kafka
-          - kotlin
-          - kubernetes
-          - langchain4j
-          - liquibase
-          - logging
-          - mcp
-          - micrometer
-          - mongodb
-          - mqtt
-          - multitenancy
-          - nats
-          - neo4j
-          - object-storage
-          - openapi
-          - openrewrite
-          - opensearch
-          - oracle-cloud
-          - picocli
-          - platform
-          - problem-json
-          - projectgen
-          - pulsar
-          - r2dbc
-          - rabbitmq
-          - reactor
-          - redis
-          - rss
-          - rxjava3
-          - security
-          - serialization
-          - servlet
-          - session
-          - sourcegen
-          - spring
-          - sql
-          - test
-          - test-resources
-          - toml
-          - tracing
-          - validation
-          - views
+        repo: ${{ fromJson(needs.prepare-matrix.outputs.repos) }}
     steps:
       - name: Checkout source
         uses: actions/checkout@v6
