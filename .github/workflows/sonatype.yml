@@ -21,15 +21,8 @@ jobs:
       matrix:
         java: ['25']
     env:
-      DEVELOCITY_ACCESS_KEY: ${{ secrets.GRADLE_ENTERPRISE_ACCESS_KEY }}
-      DEVELOCITY_CACHE_USERNAME: ${{ secrets.GRADLE_ENTERPRISE_CACHE_USERNAME }}
-      DEVELOCITY_CACHE_PASSWORD: ${{ secrets.GRADLE_ENTERPRISE_CACHE_PASSWORD }}
-      GH_TOKEN_PUBLIC_REPOS_READONLY: ${{ secrets.GH_TOKEN_PUBLIC_REPOS_READONLY }}
-      GH_USERNAME: ${{ secrets.GH_USERNAME }}
       TESTCONTAINERS_RYUK_DISABLED: true
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      OSS_INDEX_USERNAME: ${{ secrets.OSS_INDEX_USERNAME }}
-      OSS_INDEX_PASSWORD: ${{ secrets.OSS_INDEX_PASSWORD }}
+      OSS_INDEX_PASSWORD_AVAILABLE: ${{ secrets.OSS_INDEX_PASSWORD != '' }}
     steps:
        # https://github.com/actions/virtual-environments/issues/709
       - name: Remove system JDKs
@@ -67,8 +60,16 @@ jobs:
           [ -f ./setup.sh ] && ./setup.sh || [ ! -f ./setup.sh ]
 
       - name: "🚔 Sonatype Scan"
-        if: env.OSS_INDEX_PASSWORD != '' && matrix.java == '25'
+        if: env.OSS_INDEX_PASSWORD_AVAILABLE == 'true' && matrix.java == '25'
         id: sonatypescan
+        env:
+          DEVELOCITY_ACCESS_KEY: ${{ secrets.GRADLE_ENTERPRISE_ACCESS_KEY }}
+          DEVELOCITY_CACHE_USERNAME: ${{ secrets.GRADLE_ENTERPRISE_CACHE_USERNAME }}
+          DEVELOCITY_CACHE_PASSWORD: ${{ secrets.GRADLE_ENTERPRISE_CACHE_PASSWORD }}
+          GH_TOKEN_PUBLIC_REPOS_READONLY: ${{ secrets.GH_TOKEN_PUBLIC_REPOS_READONLY }}
+          GH_USERNAME: ${{ secrets.GH_USERNAME }}
+          OSS_INDEX_USERNAME: ${{ secrets.OSS_INDEX_USERNAME }}
+          OSS_INDEX_PASSWORD: ${{ secrets.OSS_INDEX_PASSWORD }}
         run: |
           ./gradlew ossIndexAudit --no-parallel --info
 
