@@ -21,16 +21,16 @@ jobs:
       matrix:
         java: ['25']
     env:
-      DEVELOCITY_ACCESS_KEY: ${{ github.event.pull_request == null && secrets.GRADLE_ENTERPRISE_ACCESS_KEY || '' }}
-      DEVELOCITY_CACHE_USERNAME: ${{ github.event.pull_request == null && secrets.GRADLE_ENTERPRISE_CACHE_USERNAME || '' }}
-      DEVELOCITY_CACHE_PASSWORD: ${{ github.event.pull_request == null && secrets.GRADLE_ENTERPRISE_CACHE_PASSWORD || '' }}
-      GH_TOKEN_PUBLIC_REPOS_READONLY: ${{ github.event.pull_request == null && secrets.GH_TOKEN_PUBLIC_REPOS_READONLY || '' }}
-      GH_USERNAME: ${{ github.event.pull_request == null && secrets.GH_USERNAME || '' }}
+      DEVELOCITY_ACCESS_KEY: ${{ secrets.GRADLE_ENTERPRISE_ACCESS_KEY }}
+      DEVELOCITY_CACHE_USERNAME: ${{ secrets.GRADLE_ENTERPRISE_CACHE_USERNAME }}
+      DEVELOCITY_CACHE_PASSWORD: ${{ secrets.GRADLE_ENTERPRISE_CACHE_PASSWORD }}
+      GH_TOKEN_PUBLIC_REPOS_READONLY: ${{ secrets.GH_TOKEN_PUBLIC_REPOS_READONLY }}
+      GH_USERNAME: ${{ secrets.GH_USERNAME }}
       TESTCONTAINERS_RYUK_DISABLED: true
-      SONAR_TOKEN: ${{ github.event.pull_request == null && secrets.SONAR_TOKEN || '' }}
-      GITHUB_TOKEN: ${{ github.event.pull_request == null && github.token || '' }}
-      OSS_INDEX_USERNAME: ${{ github.event.pull_request == null && secrets.OSS_INDEX_USERNAME || '' }}
-      OSS_INDEX_PASSWORD: ${{ github.event.pull_request == null && secrets.OSS_INDEX_PASSWORD || '' }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      GITHUB_TOKEN: ${{ github.token }}
+      OSS_INDEX_USERNAME: ${{ secrets.OSS_INDEX_USERNAME }}
+      OSS_INDEX_PASSWORD: ${{ secrets.OSS_INDEX_PASSWORD }}
     steps:
        # https://github.com/actions/virtual-environments/issues/709
       - name: Remove system JDKs
