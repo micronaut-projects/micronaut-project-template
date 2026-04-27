@@ -25,9 +25,9 @@ jobs:
         uses: micronaut-projects/github-actions/graalvm/build-matrix@300bf6db7c062dcba77c90bb90e475df31b2acab # master
         id: build-matrix
         env:
-          DEVELOCITY_ACCESS_KEY: ${{ secrets.GRADLE_ENTERPRISE_ACCESS_KEY }}
-          DEVELOCITY_CACHE_USERNAME: ${{ secrets.GRADLE_ENTERPRISE_CACHE_USERNAME }}
-          DEVELOCITY_CACHE_PASSWORD: ${{ secrets.GRADLE_ENTERPRISE_CACHE_PASSWORD }}
+          DEVELOCITY_ACCESS_KEY: ${{ github.event_name == 'push' && secrets.GRADLE_ENTERPRISE_ACCESS_KEY || '' }}
+          DEVELOCITY_CACHE_USERNAME: ${{ github.event_name == 'push' && secrets.GRADLE_ENTERPRISE_CACHE_USERNAME || '' }}
+          DEVELOCITY_CACHE_PASSWORD: ${{ github.event_name == 'push' && secrets.GRADLE_ENTERPRISE_CACHE_PASSWORD || '' }}
         with:
           java-version: '25'
   build:
@@ -50,9 +50,9 @@ jobs:
         uses: micronaut-projects/github-actions/graalvm/pre-build@300bf6db7c062dcba77c90bb90e475df31b2acab # master
         id: pre-build
         env:
-          DEVELOCITY_ACCESS_KEY: ${{ secrets.GRADLE_ENTERPRISE_ACCESS_KEY }}
-          DEVELOCITY_CACHE_USERNAME: ${{ secrets.GRADLE_ENTERPRISE_CACHE_USERNAME }}
-          DEVELOCITY_CACHE_PASSWORD: ${{ secrets.GRADLE_ENTERPRISE_CACHE_PASSWORD }}
+          DEVELOCITY_ACCESS_KEY: ${{ github.event_name == 'push' && secrets.GRADLE_ENTERPRISE_ACCESS_KEY || '' }}
+          DEVELOCITY_CACHE_USERNAME: ${{ github.event_name == 'push' && secrets.GRADLE_ENTERPRISE_CACHE_USERNAME || '' }}
+          DEVELOCITY_CACHE_PASSWORD: ${{ github.event_name == 'push' && secrets.GRADLE_ENTERPRISE_CACHE_PASSWORD || '' }}
         with:
           distribution: 'graalvm'
           gradle-java: '25'
@@ -62,11 +62,11 @@ jobs:
         uses: micronaut-projects/github-actions/graalvm/build@300bf6db7c062dcba77c90bb90e475df31b2acab # master
         id: build
         env:
-          DEVELOCITY_ACCESS_KEY: ${{ secrets.GRADLE_ENTERPRISE_ACCESS_KEY }}
-          DEVELOCITY_CACHE_USERNAME: ${{ secrets.GRADLE_ENTERPRISE_CACHE_USERNAME }}
-          DEVELOCITY_CACHE_PASSWORD: ${{ secrets.GRADLE_ENTERPRISE_CACHE_PASSWORD }}
-          GH_TOKEN_PUBLIC_REPOS_READONLY: ${{ secrets.GH_TOKEN_PUBLIC_REPOS_READONLY }}
-          GH_USERNAME: ${{ secrets.GH_USERNAME }}
+          DEVELOCITY_ACCESS_KEY: ${{ github.event_name == 'push' && secrets.GRADLE_ENTERPRISE_ACCESS_KEY || '' }}
+          DEVELOCITY_CACHE_USERNAME: ${{ github.event_name == 'push' && secrets.GRADLE_ENTERPRISE_CACHE_USERNAME || '' }}
+          DEVELOCITY_CACHE_PASSWORD: ${{ github.event_name == 'push' && secrets.GRADLE_ENTERPRISE_CACHE_PASSWORD || '' }}
+          GH_TOKEN_PUBLIC_REPOS_READONLY: ${{ github.event_name == 'push' && secrets.GH_TOKEN_PUBLIC_REPOS_READONLY || '' }}
+          GH_USERNAME: ${{ github.event_name == 'push' && secrets.GH_USERNAME || '' }}
           GRAALVM_QUICK_BUILD: true
         with:
           nativeTestTask: ${{ matrix.native_test_task }}
@@ -74,8 +74,8 @@ jobs:
         uses: micronaut-projects/github-actions/graalvm/post-build@300bf6db7c062dcba77c90bb90e475df31b2acab # master
         id: post-build
         env:
-          DEVELOCITY_ACCESS_KEY: ${{ secrets.GRADLE_ENTERPRISE_ACCESS_KEY }}
-          DEVELOCITY_CACHE_USERNAME: ${{ secrets.GRADLE_ENTERPRISE_CACHE_USERNAME }}
-          DEVELOCITY_CACHE_PASSWORD: ${{ secrets.GRADLE_ENTERPRISE_CACHE_PASSWORD }}
+          DEVELOCITY_ACCESS_KEY: ${{ github.event_name == 'push' && secrets.GRADLE_ENTERPRISE_ACCESS_KEY || '' }}
+          DEVELOCITY_CACHE_USERNAME: ${{ github.event_name == 'push' && secrets.GRADLE_ENTERPRISE_CACHE_USERNAME || '' }}
+          DEVELOCITY_CACHE_PASSWORD: ${{ github.event_name == 'push' && secrets.GRADLE_ENTERPRISE_CACHE_PASSWORD || '' }}
         with:
           java: ${{ matrix.java }}

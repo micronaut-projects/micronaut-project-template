@@ -50,7 +50,7 @@ jobs:
         with:
           distribution: 'graalvm'
           java-version: ${{ matrix.java }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ github.token }}
 
       - name: "🔧 Setup Gradle"
         uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6
@@ -62,18 +62,18 @@ jobs:
       - name: "🛠 Build with Gradle"
         id: gradle
         env:
-          DEVELOCITY_ACCESS_KEY: ${{ secrets.GRADLE_ENTERPRISE_ACCESS_KEY }}
-          DEVELOCITY_CACHE_USERNAME: ${{ secrets.GRADLE_ENTERPRISE_CACHE_USERNAME }}
-          DEVELOCITY_CACHE_PASSWORD: ${{ secrets.GRADLE_ENTERPRISE_CACHE_PASSWORD }}
-          GH_TOKEN_PUBLIC_REPOS_READONLY: ${{ secrets.GH_TOKEN_PUBLIC_REPOS_READONLY }}
-          GH_USERNAME: ${{ secrets.GH_USERNAME }}
-          OSS_INDEX_USERNAME: ${{ secrets.OSS_INDEX_USERNAME }}
-          OSS_INDEX_PASSWORD: ${{ secrets.OSS_INDEX_PASSWORD }}
+          DEVELOCITY_ACCESS_KEY: ${{ github.event_name == 'push' && secrets.GRADLE_ENTERPRISE_ACCESS_KEY || '' }}
+          DEVELOCITY_CACHE_USERNAME: ${{ github.event_name == 'push' && secrets.GRADLE_ENTERPRISE_CACHE_USERNAME || '' }}
+          DEVELOCITY_CACHE_PASSWORD: ${{ github.event_name == 'push' && secrets.GRADLE_ENTERPRISE_CACHE_PASSWORD || '' }}
+          GH_TOKEN_PUBLIC_REPOS_READONLY: ${{ github.event_name == 'push' && secrets.GH_TOKEN_PUBLIC_REPOS_READONLY || '' }}
+          GH_USERNAME: ${{ github.event_name == 'push' && secrets.GH_USERNAME || '' }}
+          OSS_INDEX_USERNAME: ${{ github.event_name == 'push' && secrets.OSS_INDEX_USERNAME || '' }}
+          OSS_INDEX_PASSWORD: ${{ github.event_name == 'push' && secrets.OSS_INDEX_PASSWORD || '' }}
         run: |
           ./gradlew check jacocoReport --no-daemon --continue
 
       - name: "🔎 Run static analysis"
-        if: env.SONAR_TOKEN_AVAILABLE == 'true' && matrix.java == '25'
+        if: github.event_name == 'push' && env.SONAR_TOKEN_AVAILABLE == 'true' && matrix.java == '25'
         env:
           DEVELOCITY_ACCESS_KEY: ${{ secrets.GRADLE_ENTERPRISE_ACCESS_KEY }}
           DEVELOCITY_CACHE_USERNAME: ${{ secrets.GRADLE_ENTERPRISE_CACHE_USERNAME }}
