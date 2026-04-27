@@ -22,7 +22,7 @@ jobs:
         java: ['25']
     env:
       TESTCONTAINERS_RYUK_DISABLED: true
-      OSS_INDEX_PASSWORD_AVAILABLE: ${{ secrets.OSS_INDEX_PASSWORD != '' }}
+      OSS_INDEX_PASSWORD_AVAILABLE: ${{ github.event_name == 'push' && secrets.OSS_INDEX_PASSWORD != '' && 'true' || 'false' }}
     steps:
        # https://github.com/actions/virtual-environments/issues/709
       - name: Remove system JDKs

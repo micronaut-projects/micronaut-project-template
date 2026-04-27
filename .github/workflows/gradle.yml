@@ -22,7 +22,7 @@ jobs:
         java: ['25']
     env:
       TESTCONTAINERS_RYUK_DISABLED: true
-      SONAR_TOKEN_AVAILABLE: ${{ secrets.SONAR_TOKEN != '' }}
+      SONAR_TOKEN_AVAILABLE: ${{ github.event_name == 'push' && secrets.SONAR_TOKEN != '' && 'true' || 'false' }}
     steps:
        # https://github.com/actions/virtual-environments/issues/709
       - name: Remove system JDKs
