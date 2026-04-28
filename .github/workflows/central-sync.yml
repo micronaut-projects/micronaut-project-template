@@ -13,6 +13,8 @@ on:
 jobs:
   central-sync:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Remove system JDKs
         run: |

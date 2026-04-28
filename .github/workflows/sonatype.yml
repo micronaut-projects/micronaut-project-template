@@ -29,6 +29,8 @@ jobs:
   audit:
     if: github.repository != 'micronaut-projects/micronaut-project-template'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       matrix:
         java: ['25']
