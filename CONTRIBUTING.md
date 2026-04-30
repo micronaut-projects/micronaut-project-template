@@ -1,14 +1,14 @@
 # Contributing Code or Documentation to Micronaut
 
-Sign the [Contributor License Agreement (CLA)](https://cla-assistant.io/micronaut-projects/micronaut-project-template). This is required before any of your code or pull-requests are accepted.
+Sign the [Contributor License Agreement (CLA)](https://cla-assistant.io/micronaut-projects/micronaut-project-template). This is required before any of your code or pull requests are accepted.
 
 ## Finding Issues to Work on
 
-If you are interested in contributing to Micronaut and are looking for issues to work on, take a look at the issues tagged with [help wanted](https://github.com/micronaut-projects/micronaut-xxx/issues?q=is%3Aopen+is%3Aissue+label%3A%22status%3A+help+wanted%22).
+If you are interested in contributing to Micronaut and are looking for issues to work on, take a look at the issues tagged with [help wanted](https://github.com/micronaut-projects/micronaut-project-template/issues?q=is%3Aopen+is%3Aissue+label%3A%22status%3A+help+wanted%22).
 
 ## JDK Setup
 
-Micronaut project-template currently requires JDK 21.
+Micronaut project-template currently requires JDK 25.
 
 ## IDE Setup
 
@@ -26,15 +26,15 @@ To run the tests, use `./gradlew check`.
 
 The documentation sources are located at `src/main/docs/guide`.
 
-To build the documentation, run `./gradlew publishGuide` (or `./gradlew pG`), then open `build/docs/index.html`
+To build the documentation, run `./gradlew publishGuide` (or `./gradlew pG`), then open `build/docs/index.html`.
 
 To also build the Javadocs, run `./gradlew docs`.
 
 ## Working on the code base
 
-If you use IntelliJ IDEA, you can import the project using the Intellij Gradle Tooling ("File / Import Project" and selecting the "settings.gradle" file).
+If you use IntelliJ IDEA, you can import the project using the IntelliJ Gradle Tooling ("File / Import Project" and selecting the `settings.gradle` file).
 
-To get a local development version of Micronaut XXX working, first run the `publishToMavenLocal` task.
+To get a local development version of Micronaut project-template working, first run the `publishToMavenLocal` task.
 
 ```
 ./gradlew pTML
@@ -59,7 +59,7 @@ Once you are satisfied with your changes:
 
 ## Merging a pull request
 
-Before we merge into a module's `master` branch a PR, we have to consider.
+Before we merge a PR into a module's `master` branch, we have to consider:
 
 Can this PR be merged into a patch release (e.g. documentation fixes, bug fix, patch transitive dependency upgrade, breaking change due to security, GitHub actions sync, Micronaut Build Plugin upgrade)?
 
@@ -67,7 +67,7 @@ Should this PR be merged into the next minor version of the module? For example,
 
 If the PR is going into the next minor version of the module, we need to release a patch version, and branch off `master` a new branch for the current minor module's version. If the `gradle.properties`'s `projectVersion` is 3.1.2-SNAPSHOT the branch should be named 3.1.x, and we push it to GitHub. If `master` contains only commits such as GitHub actions sync (no commits with benefits to users), we can branch off without doing a patch release.
 
-When you merge a PR which will go into the next Module's minor.
+When you merge a PR that will go into the next module's minor release:
 
 - Update `gradle.properties`'s `githubCoreBranch` to point to the next minor branch of Micronaut Core.
 - Update `gradle.properties`'s `projectVersion` to the next minor snapshot.
@@ -77,13 +77,13 @@ When you merge a PR which will go into the next Module's minor.
 
 We want to keep the code clean, following good practices about organization, Javadoc, and style as much as possible.
 
-Micronaut XXX uses [Checkstyle](https://checkstyle.sourceforge.io/) to make sure that the code follows those standards. The configuration is defined in `config/checkstyle/checkstyle.xml`. To execute Checkstyle, run:
+Micronaut project-template uses [Checkstyle](https://checkstyle.sourceforge.io/) to make sure that the code follows those standards. The configuration is defined in `config/checkstyle/checkstyle.xml`. To execute Checkstyle, run:
 
 ```
 ./gradlew <module-name>:checkstyleMain
 ```
 
-Before starting to contribute new code we recommended that you install the IntelliJ [CheckStyle-IDEA](https://plugins.jetbrains.com/plugin/1065-checkstyle-idea) plugin and configure it to use Micronaut's checkstyle configuration file.
+Before starting to contribute new code, we recommend that you install the IntelliJ [CheckStyle-IDEA](https://plugins.jetbrains.com/plugin/1065-checkstyle-idea) plugin and configure it to use Micronaut's checkstyle configuration file.
 
 IntelliJ will mark in red the issues Checkstyle finds. For example:
 
