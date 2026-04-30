@@ -157,6 +157,8 @@ jobs:
 
   github_release:
     needs: [release, provenance]
+    permissions:
+      contents: write # To add assets to a release.
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
