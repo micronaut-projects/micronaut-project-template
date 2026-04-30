@@ -64,14 +64,15 @@ jobs:
         id: hash
         run: |
           # Find all files in the local publication repository.
-          mapfile -d '' ARTIFACTS < <(find build/repo/${{ steps.publish.outputs.group }}/*/${{ steps.publish.outputs.version }}/* \
-              -type f -print0 | sort -z)
+          cd build/repo
+          mapfile -d '' ARTIFACTS < <(find . -type f -printf '%P\0' | sort -z)
           if [[ ${#ARTIFACTS[@]} -eq 0 ]]; then
             echo "No publication artifacts found" >&2
             exit 1
           fi
           # Compute the hashes for the publication artifacts.
-          HASHES=$(sha256sum "${ARTIFACTS[@]}" | base64 -w0)
+          HASHES=$(sha256sum -- "${ARTIFACTS[@]}" | base64 -w0)
+          cd ../..
           # Set the hash as job output for debugging.
           echo "artifacts-sha256=$HASHES" >> "$GITHUB_OUTPUT"
           # Store the hash in a file, which is uploaded as a workflow artifact.
