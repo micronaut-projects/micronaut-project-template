@@ -1,6 +1,8 @@
 - files-sync.yml
 - test-files-sync.yml
 - update-gradle-wrapper.yml
+- graalvm-dev.yml
+- graalvm-latest.yml
 - .rsync-filter
 - template-cleanup.yml
 - skills-validation.yml
