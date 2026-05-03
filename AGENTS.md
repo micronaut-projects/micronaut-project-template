@@ -13,6 +13,7 @@ This repository is the Micronaut template for generated module repositories. Kee
 
 - Treat `.github/workflows/files-sync.yml` as the source of truth for files copied from this template to other Micronaut repositories.
 - Before editing synced files, check whether the file is copied by `files-sync.yml`, excluded by `.github/workflows/.rsync-filter`, or rewritten by `.github/workflows/template-cleanup.yml`.
+- `CONTRIBUTING.md` is rewritten by `template-cleanup.yml` when a repository is created from the template, but it is not copied by the recurring files-sync workflow. Existing downstream copies need repo-specific PRs.
 - Do not add project-specific assumptions to files that will be synced broadly unless the cleanup workflow rewrites them correctly for generated repositories.
 - When changing placeholder names, update every cleanup substitution and related file move in `.github/workflows/template-cleanup.yml`.
 
