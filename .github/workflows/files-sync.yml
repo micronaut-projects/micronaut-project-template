@@ -179,6 +179,7 @@ jobs:
             .github/ISSUE_TEMPLATE/config.yml
             .github/ISSUE_TEMPLATE/new_feature.yaml
             .github/ISSUE_TEMPLATE/other.yaml
+            .github/scripts/vulnerability-audit.sh
             .sdkmanrc
             gradle/wrapper/gradle-wrapper.jar
             gradle/wrapper/gradle-wrapper.properties
@@ -227,6 +228,7 @@ jobs:
             .agents/skills
             .github/*
             .github/ISSUE_TEMPLATE/*
+            .github/scripts/*
             .github/workflows/*
             .sdkmanrc
             gradle/*
