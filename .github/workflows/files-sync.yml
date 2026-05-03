@@ -175,6 +175,7 @@ jobs:
             .gitignore
             .github/renovate.json
             .github/release.yml
+            .github/scripts/vulnerability-audit.sh
             .github/ISSUE_TEMPLATE/bug_report.yaml
             .github/ISSUE_TEMPLATE/config.yml
             .github/ISSUE_TEMPLATE/new_feature.yaml
@@ -226,6 +227,7 @@ jobs:
             .gitignore
             .agents/skills
             .github/*
+            .github/scripts/*
             .github/ISSUE_TEMPLATE/*
             .github/workflows/*
             .sdkmanrc
