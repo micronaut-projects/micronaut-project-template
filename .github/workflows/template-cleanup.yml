@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.repository.name != 'micronaut-project-template'
     permissions:
-      contents: write
+      contents: read
     steps:
 
       # Check out current repository
@@ -39,16 +39,47 @@ jobs:
           git mv buildSrc/src/main/groovy/io.micronaut.build.internal.project-template-base.gradle "buildSrc/src/main/groovy/io.micronaut.build.internal.${GITHUB_REPOSITORY:29}-base.gradle"
           # Remove clean up template
           rm -rf  .github/workflows/template-cleanup.yml
+
+      # Save modified files
+      - name: Create cleanup patch
+        run: |
+          git add .
+          git diff --cached --binary > template-cleanup.patch
+
+      # Upload cleanup patch
+      - name: Upload cleanup patch
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: template-cleanup-patch
+          path: template-cleanup.patch
+
+  template-cleanup-push:
+    name: Push Template Cleanup
+    runs-on: ubuntu-latest
+    needs: template-cleanup
+    if: github.event.repository.name != 'micronaut-project-template'
+    permissions:
+      contents: write
+    steps:
+
+      # Check out current repository
+      - name: Fetch Sources
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      # Download cleanup patch
+      - name: Download cleanup patch
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: template-cleanup-patch
+
       # Commit modified files
       - name: Commit files
         run: |
+          git apply --index template-cleanup.patch
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add .
           git commit -m "Template cleanup"
+
       # Push changes
       - name: Push changes
-        uses: ad-m/github-push-action@d30dc2d070765d7e509df00c34c5fa2dd636ff74 # master
-        with:
-          branch: ${{ github.ref }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+        run: git push origin "HEAD:${GITHUB_REF}"
