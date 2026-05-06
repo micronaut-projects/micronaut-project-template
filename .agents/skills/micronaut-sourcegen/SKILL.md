@@ -191,9 +191,3 @@ Use `references/sourcegen-cookbook.md` for adoption patterns covering:
 ## References
 
 - `references/sourcegen-cookbook.md`
-- `sourcegen-model/src/main/java/io/micronaut/sourcegen/model`
-- `sourcegen-generator/src/main/java/io/micronaut/sourcegen/generator`
-- `sourcegen-generator-java/src/main/java/io/micronaut/sourcegen`
-- `sourcegen-generator-kotlin/src/main/kotlin/io/micronaut/sourcegen`
-- `sourcegen-generator-bytecode/src/main/java/io/micronaut/sourcegen/generator/bytecode`
-- `sourcegen-bytecode-writer/src/main/java/io/micronaut/sourcegen/bytecode`
