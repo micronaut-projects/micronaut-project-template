@@ -176,6 +176,7 @@ jobs:
             .github/renovate.json
             .github/release.yml
             .github/scripts/vulnerability-audit.sh
+            .github/scripts/vulnerability-audit-filter.py
             .github/ISSUE_TEMPLATE/bug_report.yaml
             .github/ISSUE_TEMPLATE/config.yml
             .github/ISSUE_TEMPLATE/new_feature.yaml
