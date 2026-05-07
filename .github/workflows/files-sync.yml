@@ -121,8 +121,136 @@ jobs:
 
           echo "repos=${json}" >> "${GITHUB_OUTPUT}"
 
-  sync-files:
+  merge-existing-sync-pull-requests:
     needs: prepare-matrix
+    if: github.repository == 'micronaut-projects/micronaut-project-template'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        repo: ${{ fromJson(needs.prepare-matrix.outputs.repos) }}
+    steps:
+      - name: Merge existing green sync pull request
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          REPOSITORY: micronaut-projects/micronaut-${{ matrix.repo }}
+          REPO_SLUG: ${{ matrix.repo }}
+        run: |
+          default_branch="$(gh repo view "${REPOSITORY}" --json defaultBranchRef --jq '.defaultBranchRef.name')"
+          sync_branch="sync-files-${default_branch}"
+          sync_title="[${REPO_SLUG}] Update common files for branch ${default_branch}"
+
+          prs_json="$(gh pr list \
+            --repo "${REPOSITORY}" \
+            --state open \
+            --base "${default_branch}" \
+            --head "${sync_branch}" \
+            --json number,title,baseRefName,headRefName \
+            --limit 20)"
+
+          matching_prs="$(jq \
+            --arg title "${sync_title}" \
+            --arg base "${default_branch}" \
+            --arg head "${sync_branch}" \
+            '[.[] | select(.title == $title and .baseRefName == $base and .headRefName == $head)]' \
+            <<< "${prs_json}")"
+          match_count="$(jq 'length' <<< "${matching_prs}")"
+
+          if [ "${match_count}" -eq 0 ]; then
+            echo "No open sync pull request found for ${REPOSITORY} ${sync_branch}."
+            exit 0
+          fi
+
+          if [ "${match_count}" -gt 1 ]; then
+            echo "Found ${match_count} matching sync pull requests for ${REPOSITORY}; skipping ambiguous merge."
+            exit 0
+          fi
+
+          pr_number="$(jq -r '.[0].number' <<< "${matching_prs}")"
+          pr_json="$(gh pr view "${pr_number}" \
+            --repo "${REPOSITORY}" \
+            --json number,url,isDraft,headRefOid,mergeable,mergeStateStatus,statusCheckRollup,title,baseRefName,headRefName)"
+
+          pr_url="$(jq -r '.url' <<< "${pr_json}")"
+          head_sha="$(jq -r '.headRefOid' <<< "${pr_json}")"
+          is_draft="$(jq -r '.isDraft' <<< "${pr_json}")"
+          mergeable="$(jq -r '.mergeable' <<< "${pr_json}")"
+          merge_state="$(jq -r '.mergeStateStatus' <<< "${pr_json}")"
+          check_count="$(jq '.statusCheckRollup | length' <<< "${pr_json}")"
+          failing_checks="$(jq '
+            [
+              .statusCheckRollup[]
+              | select(
+                  (
+                    .__typename == "CheckRun"
+                    and (
+                      .status != "COMPLETED"
+                      or (.conclusion | IN("SUCCESS", "SKIPPED", "NEUTRAL") | not)
+                    )
+                  )
+                  or
+                  (
+                    .__typename == "StatusContext"
+                    and .state != "SUCCESS"
+                  )
+                  or
+                  (
+                    (.__typename | IN("CheckRun", "StatusContext") | not)
+                  )
+                )
+            ]
+            | length
+          ' <<< "${pr_json}")"
+
+          if [ "${is_draft}" = "true" ]; then
+            echo "Skipping draft sync pull request ${pr_url}."
+            exit 0
+          fi
+
+          if [ "${check_count}" -eq 0 ]; then
+            echo "Skipping ${pr_url} because it has no status checks."
+            exit 0
+          fi
+
+          if [ "${failing_checks}" -ne 0 ]; then
+            echo "Skipping ${pr_url} because not all status checks are green."
+            exit 0
+          fi
+
+          if [ "${mergeable}" != "MERGEABLE" ] || [ "${merge_state}" != "CLEAN" ]; then
+            echo "Skipping ${pr_url} because mergeable=${mergeable} and mergeStateStatus=${merge_state}."
+            exit 0
+          fi
+
+          repo_json="$(gh repo view "${REPOSITORY}" --json mergeCommitAllowed,squashMergeAllowed,rebaseMergeAllowed)"
+          merge_args=()
+          if [ "$(jq -r '.mergeCommitAllowed' <<< "${repo_json}")" = "true" ]; then
+            merge_args+=(--merge)
+          elif [ "$(jq -r '.squashMergeAllowed' <<< "${repo_json}")" = "true" ]; then
+            merge_args+=(--squash)
+          elif [ "$(jq -r '.rebaseMergeAllowed' <<< "${repo_json}")" = "true" ]; then
+            merge_args+=(--rebase)
+          else
+            echo "Skipping ${pr_url} because no supported merge method is enabled."
+            exit 0
+          fi
+
+          if gh pr merge "${pr_number}" \
+            --repo "${REPOSITORY}" \
+            "${merge_args[@]}" \
+            --match-head-commit "${head_sha}" \
+            --delete-branch; then
+            echo "Merged existing green sync pull request ${pr_url}."
+          else
+            echo "Unable to merge ${pr_url}; it may have changed after inspection."
+          fi
+
+  sync-files:
+    needs:
+      - prepare-matrix
+      - merge-existing-sync-pull-requests
     if: github.repository == 'micronaut-projects/micronaut-project-template'
     runs-on: ubuntu-latest
     strategy:
