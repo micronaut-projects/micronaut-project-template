@@ -1,1 +1,5 @@
-TODO
+Micronaut Project Template is the repository template used to create and maintain Micronaut module repositories.
+
+It provides the shared Gradle build, documentation scaffold, release automation, issue templates, code style configuration, and GitHub Actions workflows expected by Micronaut projects. New repositories created from this template are cleaned up by the template cleanup workflow so placeholder names such as `project-template` are replaced with the generated repository name.
+
+Use this project when you are creating or updating the common repository structure for Micronaut modules. If you are building a Micronaut application, start with the Micronaut Launch and application guides instead of this maintainer template.

@@ -1,1 +1,23 @@
-TODO
+To create a new Micronaut module repository from this template:
+
+. Create the repository from `micronaut-projects/micronaut-project-template`.
+. Push the first commit to the new repository.
+. Let the `Template Clean Up` workflow run.
+. Review the cleanup patch and confirm that placeholder names were replaced with the new repository name.
+. Build the generated project locally:
++
+[source,bash]
+----
+./gradlew check
+----
+
+The cleanup workflow rewrites the repository-specific files and renames the placeholder module directories before removing itself from the generated repository.
+
+To work on this template directly, make the change in this repository, then build the guide:
+
+[source,bash]
+----
+./gradlew publishGuide
+----
+
+The generated guide is written to `build/docs/index.html`.
