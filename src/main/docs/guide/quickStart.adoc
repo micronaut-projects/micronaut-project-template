@@ -1,1 +1,15 @@
-TODO
+Use this repository when creating or maintaining a Micronaut module repository.
+
+To create a new module repository, start from the GitHub template repository at https://github.com/{githubSlug}[https://github.com/{githubSlug}].
+When the generated repository receives its first push, the template cleanup workflow updates template-specific names and repository links in the files it edits, renames the starter module and BOM directories, and removes the cleanup workflow from the generated repository.
+
+After cleanup, review the generated repository before opening it for normal development:
+
+* confirm `gradle.properties` contains the correct project name, group, description, and GitHub slug
+* confirm the module and BOM directory names match the new repository
+* replace any remaining project-specific wording in `README.md`, `CONTRIBUTING.md`, and guide files
+* run `./gradlew check` to verify the generated build
+* run `./gradlew publishGuide` to verify the generated user guide
+
+To update shared files for existing Micronaut repositories, change the source files in this template repository.
+The `Files sync` workflow can then open synchronization pull requests for the configured target repositories.

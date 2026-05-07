@@ -1,1 +1,5 @@
-TODO
+Micronaut Project Template is the template repository used to start new Micronaut module projects.
+
+The repository provides the baseline Gradle build, module and BOM project layout, documentation structure, release workflows, issue templates, license and maintenance files expected by Micronaut projects.
+
+It also acts as the source of truth for common project files that are synchronized into existing Micronaut repositories. Changes to shared workflow files, Gradle wrapper files, issue templates, maintenance files, and shared configuration should therefore be made here when the same change is intended for the wider Micronaut project set.
