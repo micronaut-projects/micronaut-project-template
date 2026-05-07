@@ -175,13 +175,16 @@ jobs:
 
           pr_url="$(jq -r '.url' <<< "${pr_json}")"
           head_sha="$(jq -r '.headRefOid' <<< "${pr_json}")"
+          selected_title="$(jq -r '.title' <<< "${pr_json}")"
+          selected_base="$(jq -r '.baseRefName' <<< "${pr_json}")"
+          selected_head="$(jq -r '.headRefName' <<< "${pr_json}")"
           is_draft="$(jq -r '.isDraft' <<< "${pr_json}")"
           mergeable="$(jq -r '.mergeable' <<< "${pr_json}")"
           merge_state="$(jq -r '.mergeStateStatus' <<< "${pr_json}")"
-          check_count="$(jq '.statusCheckRollup | length' <<< "${pr_json}")"
+          check_count="$(jq '(.statusCheckRollup // []) | length' <<< "${pr_json}")"
           failing_checks="$(jq '
             [
-              .statusCheckRollup[]
+              (.statusCheckRollup // [])[]
               | select(
                   (
                     .__typename == "CheckRun"
@@ -203,6 +206,13 @@ jobs:
             ]
             | length
           ' <<< "${pr_json}")"
+
+          if [ "${selected_title}" != "${sync_title}" ] ||
+            [ "${selected_base}" != "${default_branch}" ] ||
+            [ "${selected_head}" != "${sync_branch}" ]; then
+            echo "Skipping ${pr_url} because its title, base, or head changed after selection."
+            exit 0
+          fi
 
           if [ "${is_draft}" = "true" ]; then
             echo "Skipping draft sync pull request ${pr_url}."
