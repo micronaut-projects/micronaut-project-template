@@ -209,6 +209,7 @@ jobs:
         run: sleep 180s
         shell: bash
       - name: Create Pull Request - ${{ steps.branch.outputs.branch }}
+        id: cpr
         uses: peter-evans/create-pull-request@v8
         with:
           path: target
@@ -241,3 +242,39 @@ jobs:
             config/spotless.license.java
             config/checkstyle/checkstyle.xml
             config/checkstyle/suppressions.xml
+      - name: Wait for CI and merge if green
+        if: steps.cpr.outputs.pull-request-number != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          PR_URL: ${{ steps.cpr.outputs.pull-request-url }}
+        run: |
+          set -euo pipefail
+
+          head_sha="$(gh pr view "${PR_URL}" --json headRefOid --jq '.headRefOid')"
+
+          echo "Waiting for checks to appear..."
+          for i in {1..30}; do
+            check_count="$(gh pr checks "${PR_URL}" --json name --jq 'length' 2>/dev/null || echo 0)"
+            if [ "${check_count}" -gt 0 ]; then
+              break
+            fi
+            sleep 10
+          done
+
+          if [ "${check_count}" -eq 0 ]; then
+            echo "No checks appeared for ${PR_URL}; leaving PR open."
+            exit 0
+          fi
+
+          echo "Waiting for required checks..."
+          if gh pr checks "${PR_URL}" --required --watch --fail-fast --interval 30; then
+            echo "Checks passed; merging ${PR_URL}."
+            gh pr merge "${PR_URL}" \
+              --squash \
+              --delete-branch \
+              --match-head-commit "${head_sha}"
+          else
+            echo "Checks failed, were cancelled, or timed out; leaving PR open."
+            exit 0
+          fi
