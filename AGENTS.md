@@ -17,6 +17,12 @@ This repository is the Micronaut template for generated module repositories. Kee
 - Do not add project-specific assumptions to files that will be synced broadly unless the cleanup workflow rewrites them correctly for generated repositories.
 - When changing placeholder names, update every cleanup substitution and related file move in `.github/workflows/template-cleanup.yml`.
 
+## Contributing Guidelines
+
+- Before opening or updating a pull request, read this repository's `CONTRIBUTING.md` and follow every repo-specific PR requirement it names.
+- Treat contributor-checklist items as handoff requirements. If a requirement is not applicable, state that explicitly in the PR description or handoff note.
+- For UI-visible changes, confirm whether screenshots or other visual evidence are required and include them in the PR description; if screenshots cannot be provided, explain why and describe the verification that was performed.
+
 ## Documentation
 
 - User guide sources live in `src/main/docs/guide`, with navigation in `src/main/docs/guide/toc.yml`.
