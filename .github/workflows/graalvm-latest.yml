@@ -68,6 +68,7 @@ jobs:
           GH_TOKEN_PUBLIC_REPOS_READONLY: ${{ secrets.GH_TOKEN_PUBLIC_REPOS_READONLY }}
           GH_USERNAME: ${{ secrets.GH_USERNAME }}
           GRAALVM_QUICK_BUILD: true
+          NATIVE_IMAGE_OPTIONS: "-H:+ReportExceptionStackTraces"
         with:
           nativeTestTask: ${{ matrix.native_test_task }}
       - name: Post-Build Steps
