@@ -36,7 +36,7 @@ Should not trigger:
 1. Establish scope and API impact.
 2. Implement Java code with Micronaut maintainer conventions.
 3. Enforce API boundaries and binary compatibility.
-4. Document public Java APIs.
+4. Document Java APIs and implementation intent.
 5. Keep Gradle/build changes aligned with repository conventions.
 6. Verify with maintainer-grade checks before completion.
 
@@ -74,13 +74,15 @@ Should not trigger:
 - Keep visibility as narrow as possible for non-public internals.
 - When deprecating API, provide migration-friendly Javadoc and avoid silent behavioral breaks.
 
-### 4) Document public Java APIs
+### 4) Document Java APIs and implementation intent
 
 - All public Java types and public methods must have Javadoc. Include public constructors when they are part of the user-facing API.
 - All new public Java types, methods, and user-facing constructors must include an `@since` Javadoc tag for the version where the PR will debut.
 - Determine the `@since` version from the approved target branch, not from guesswork. Inspect that branch's `gradle.properties` (`projectVersion`) and use the corresponding release version; for example, `4.9.0-SNAPSHOT` means the new API debuts in `4.9.0`.
 - If the PR is retargeted during follow-through, re-check the target branch's `gradle.properties` and update any newly added `@since` tags when the debut version changes.
 - Do not add `@since` tags to internal-only APIs annotated with `@Internal` unless the repository already does so for that internal package.
+- Internal and package-private methods should include maintainer-focused Javadoc when the implementation contract, lifecycle, invariants, or generated-code interaction is not obvious from the signature.
+- Complex new code should include focused inline comments that explain implementation decisions or invariants; do not narrate straightforward control flow.
 
 ### 5) Keep Gradle/build changes convention-aligned
 
@@ -147,6 +149,7 @@ When finishing implementation work, report:
 - [ ] API boundary guidance includes `@Internal`, `@Experimental`, `@UsedByGeneratedCode`, and compatibility checks.
 - [ ] Public Java types and methods require Javadoc.
 - [ ] New public Java APIs require `@since` tags derived from the approved target branch's `gradle.properties`.
+- [ ] Internal/package-private methods and complex new code include maintainer-focused Javadoc or inline comments when implementation intent is not obvious.
 - [ ] For public API evolution without breaking changes, deprecations include clear replacement guidance and functional compatibility is preserved.
 - [ ] If breaking changes are allowed, user guide docs in `src/main/docs/guide` are updated with migration notes.
 - [ ] Verification includes tests, style checks, `check`, and `docs`.
