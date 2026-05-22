@@ -36,8 +36,8 @@ Should not trigger:
 1. Establish scope and API impact.
 2. Implement Java code with Micronaut maintainer conventions.
 3. Enforce API boundaries and binary compatibility.
-4. Keep Gradle/build changes aligned with repository conventions.
-5. Verify API documentation and `@since` coverage for public Java APIs.
+4. Document public Java APIs.
+5. Keep Gradle/build changes aligned with repository conventions.
 6. Verify with maintainer-grade checks before completion.
 
 ### 1) Establish scope and API impact
