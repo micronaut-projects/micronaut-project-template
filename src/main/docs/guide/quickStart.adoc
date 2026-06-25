@@ -1,1 +1,1 @@
-TODO
+After applying changes from this template to a generated Micronaut application, validate the generated application itself with its normal checks, for example by running `./gradlew test` from the generated application directory.
