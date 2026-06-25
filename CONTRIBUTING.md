@@ -40,6 +40,8 @@ To get a local development version of Micronaut project-template working, first 
 ./gradlew pTML
 ```
 
+After changing the template, create a generated application that consumes this local version and run its tests to verify the generated project still builds.
+
 You can then reference the version specified with `projectVersion` in `gradle.properties` in a test project's `build.gradle` or `pom.xml`. If you use Gradle, add the `mavenLocal` repository (Maven automatically does this):
 
 ```
