@@ -13,6 +13,8 @@ Micronaut project-template
 
 See the [Documentation](https://micronaut-projects.github.io/micronaut-project-template/latest/guide/) for more information.
 
+After changing template files, validate a generated application by creating a repository from this template and running `./gradlew check` in the generated project.
+
 See the [Snapshot Documentation](https://micronaut-projects.github.io/micronaut-project-template/snapshot/guide/) for the current development docs.
 
 <!-- ## Examples
