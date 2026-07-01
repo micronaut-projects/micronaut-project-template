@@ -55,6 +55,7 @@ Should not trigger:
 - New Java packages must include `package-info.java` with `@NullMarked` and `import org.jspecify.annotations.NullMarked`; when touching an existing package without `@NullMarked`, add it unless the local code has an explicit exception.
 - Use `org.jspecify.annotations.Nullable` for nullable values, including nullable parameters, return values, fields, array/component positions such as `String @Nullable []`, nullable collection elements such as `List<@Nullable T>`, and nullable type bounds such as `<T extends @Nullable Object>`.
 - Preserve existing nullability intent when editing older code. Use JSpecify for new or modified contracts, but do not rewrite deliberate compatibility annotations such as `io.micronaut.core.annotation.Nullable` or `jakarta.annotation.Nullable` unless the task is specifically a nullability migration and compatibility impact has been checked.
+- If the change writes or generates Java source, Kotlin source, bytecode, or uses `io.micronaut.sourcegen`, also load and follow `.agents/skills/micronaut-sourcegen/SKILL.md` before editing that generation path.
 - Avoid reflection-oriented implementations in framework code paths; prefer Micronaut compile-time/introspection mechanisms.
 - Use `jakarta.inject` APIs for DI, not `javax.inject`.
 - Prefer constructor injection and immutable state over field injection.
@@ -119,6 +120,8 @@ For API-affecting changes, also run if configured in the repository:
 
 If Spotless fails, run `./gradlew -q spotlessApply` and re-run `spotlessCheck`.
 
+If the user wants Sonar-based validation or asks to select Sonar checks for the change, also use the `micronaut-sonar-review` skill to run or inspect the local Sonar review.
+
 ## Guardrails
 
 - Do not introduce `javax.inject` usage.
@@ -153,6 +156,7 @@ When finishing implementation work, report:
 - [ ] For public API evolution without breaking changes, deprecations include clear replacement guidance and functional compatibility is preserved.
 - [ ] If breaking changes are allowed, user guide docs in `src/main/docs/guide` are updated with migration notes.
 - [ ] Verification includes tests, style checks, `check`, and `docs`.
+- [ ] If the user wants selected Sonar checks or Sonar-based validation, use the `micronaut-sonar-review` skill.
 
 ## References
 
