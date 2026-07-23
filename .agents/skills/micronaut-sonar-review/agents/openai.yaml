@@ -1,0 +1,4 @@
+interface:
+  display_name: "Micronaut Sonar Review"
+  short_description: "Run local SonarQube reviews for Micronaut"
+  default_prompt: "Use $micronaut-sonar-review to run a local SonarQube review for this Micronaut repository."
