@@ -1,0 +1,39 @@
+name: Contributing Sync Validation
+
+on:
+  push:
+    paths:
+      - "GLOBAL_CONTRIBUTING.md"
+      - ".github/workflows/files-sync.yml"
+      - ".github/workflows/contributing-sync-validation.yml"
+      - "test-scripts/test_global_contributing_sync.py"
+  pull_request:
+    paths:
+      - "GLOBAL_CONTRIBUTING.md"
+      - ".github/workflows/files-sync.yml"
+      - ".github/workflows/contributing-sync-validation.yml"
+      - "test-scripts/test_global_contributing_sync.py"
+
+jobs:
+  validate-contributing-sync:
+    if: github.repository == 'micronaut-projects/micronaut-project-template'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Test global CONTRIBUTING sync logic
+        run: python3 test-scripts/test_global_contributing_sync.py
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+
+      - name: Lint shared markdown content
+        run: npx --yes markdownlint-cli2@0.22.0 GLOBAL_CONTRIBUTING.md
