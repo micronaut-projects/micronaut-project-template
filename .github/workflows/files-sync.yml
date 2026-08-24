@@ -52,6 +52,7 @@ jobs:
             guice
             hibernate-validator
             jackson-xml
+            jakarta-el
             jaxrs
             jms
             jmx
