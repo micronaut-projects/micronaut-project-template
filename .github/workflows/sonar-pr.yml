@@ -16,9 +16,10 @@
 # scripts of the pull request are executed with SONAR_TOKEN in the environment, so
 # the diff MUST be reviewed first: the human trigger IS the security boundary.
 #
-# Pass the commit that was reviewed - "/sonar <sha>", or the `sha` dispatch input -
-# to close the window in which the contributor pushes again between the review and
-# the trigger. Without it the run analyses whatever the head is when it starts.
+# Pass the commit that was reviewed - "/sonar <full 40 character sha>", or the `sha`
+# dispatch input - to close the window in which the contributor pushes again between
+# the review and the trigger. Without it the run analyses whatever the head is when
+# it starts.
 name: Sonar PR
 on:
   workflow_dispatch:
@@ -28,7 +29,7 @@ on:
         required: true
         type: string
       sha:
-        description: 'The commit that was reviewed. Optional, but the run is refused if the head has moved on from it.'
+        description: 'The full 40 character SHA of the commit you reviewed. Optional; if given, the run is refused unless it is still the head.'
         required: false
         type: string
   issue_comment:
@@ -99,6 +100,9 @@ jobs:
             fi
           fi
 
+          # The full 40 characters, not a prefix. A short prefix is cheap to
+          # grind, so a contributor could push an unreviewed commit that still
+          # matched it and the run would report itself as pinned.
           if [ "$proceed" = "true" ] && [ -n "$requested_sha" ]; then
             case "$requested_sha" in
               *[!0-9a-fA-F]*|"")
@@ -106,6 +110,11 @@ jobs:
                 exit 1
                 ;;
             esac
+            if [ "${#requested_sha}" -ne 40 ]; then
+              echo "::error::'${requested_sha}' is abbreviated. Pass the full 40 character SHA, which 'gh pr view ${PR_NUMBER} --json headRefOid' will print."
+              exit 1
+            fi
+            requested_sha=$(printf '%s' "$requested_sha" | tr 'A-F' 'a-f')
           fi
 
           echo "proceed=${proceed}" >> "$GITHUB_OUTPUT"
@@ -148,13 +157,10 @@ jobs:
           # starting: if they named the commit they reviewed, refuse to analyse
           # anything else.
           if [ -n "$REQUESTED_SHA" ]; then
-            case "$head_sha" in
-              "$REQUESTED_SHA"*) ;;
-              *)
-                echo "::error::#${PR_NUMBER} has moved on to ${head_sha} since ${REQUESTED_SHA} was reviewed. Review the new commit and trigger again."
-                exit 1
-                ;;
-            esac
+            if [ "$(printf '%s' "$head_sha" | tr 'A-F' 'a-f')" != "$REQUESTED_SHA" ]; then
+              echo "::error::#${PR_NUMBER} has moved on to ${head_sha} since ${REQUESTED_SHA} was reviewed. Review the new commit and trigger again."
+              exit 1
+            fi
           else
             echo "::warning::No reviewed commit was given, so ${head_sha} is analysed as-is. Pass '/sonar <sha>' to pin the run to the commit you reviewed."
           fi
