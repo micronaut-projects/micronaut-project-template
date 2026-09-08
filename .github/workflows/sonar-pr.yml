@@ -239,6 +239,10 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # The only secret left in this job besides SONAR_TOKEN. It is a `with:`
+      # input, so it reaches this action's step alone and not the Gradle steps,
+      # and the job's token is `contents: read`. Kept because dropping it makes
+      # release resolution flaky against the GitHub API rate limit.
       - name: "🔧 Setup GraalVM CE"
         uses: graalvm/setup-graalvm@5298d94fb55a4f185c602eeac5de1b553882abe2 # v1
         with:
@@ -253,13 +257,15 @@ jobs:
         run: |
           [ -f ./setup.sh ] && ./setup.sh || [ ! -f ./setup.sh ]
 
+      # Unlike gradle.yml, no Develocity or GitHub credentials are passed here.
+      # gradle.yml can afford them because on a fork pull request GitHub withholds
+      # every secret and they arrive empty; this workflow runs in the base
+      # repository, where they would be real and readable by contributor
+      # controlled build scripts and tests. The remote cache credentials matter
+      # most: a leak there poisons every later build in every repository. The
+      # cost is losing build scans and remote cache reads, and fork pull requests
+      # already build without any of these today.
       - name: "🛠 Build with Gradle"
-        env:
-          DEVELOCITY_ACCESS_KEY: ${{ secrets.GRADLE_ENTERPRISE_ACCESS_KEY }}
-          DEVELOCITY_CACHE_USERNAME: ${{ secrets.GRADLE_ENTERPRISE_CACHE_USERNAME }}
-          DEVELOCITY_CACHE_PASSWORD: ${{ secrets.GRADLE_ENTERPRISE_CACHE_PASSWORD }}
-          GH_TOKEN_PUBLIC_REPOS_READONLY: ${{ secrets.GH_TOKEN_PUBLIC_REPOS_READONLY }}
-          GH_USERNAME: ${{ secrets.GH_USERNAME }}
         run: |
           ./gradlew check jacocoReport --no-daemon --continue
 
@@ -275,9 +281,6 @@ jobs:
       # analyse this as a branch build of the default branch.
       - name: "🔎 Run static analysis"
         env:
-          DEVELOCITY_ACCESS_KEY: ${{ secrets.GRADLE_ENTERPRISE_ACCESS_KEY }}
-          DEVELOCITY_CACHE_USERNAME: ${{ secrets.GRADLE_ENTERPRISE_CACHE_USERNAME }}
-          DEVELOCITY_CACHE_PASSWORD: ${{ secrets.GRADLE_ENTERPRISE_CACHE_PASSWORD }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           HEAD_BRANCH: ${{ needs.authorize.outputs.head_branch }}
           BASE_BRANCH: ${{ needs.authorize.outputs.base_branch }}
