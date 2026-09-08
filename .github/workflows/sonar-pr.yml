@@ -15,6 +15,10 @@
 # from the Actions tab or by commenting "/sonar" on the pull request. The build
 # scripts of the pull request are executed with SONAR_TOKEN in the environment, so
 # the diff MUST be reviewed first: the human trigger IS the security boundary.
+#
+# Pass the commit that was reviewed - "/sonar <sha>", or the `sha` dispatch input -
+# to close the window in which the contributor pushes again between the review and
+# the trigger. Without it the run analyses whatever the head is when it starts.
 name: Sonar PR
 on:
   workflow_dispatch:
@@ -23,21 +27,22 @@ on:
         description: 'Pull request number. Review the diff first - this runs the pull request build with SONAR_TOKEN.'
         required: true
         type: string
+      sha:
+        description: 'The commit that was reviewed. Optional, but the run is refused if the head has moved on from it.'
+        required: false
+        type: string
   issue_comment:
     types: [created]
 
 permissions:
   contents: read
 
-# One analysis per pull request at a time.
-concurrency:
-  group: sonar-pr-${{ github.event_name == 'workflow_dispatch' && inputs.pr || github.event.issue.number }}
-  cancel-in-progress: true
-
 jobs:
-  # Authorisation and pull request resolution are kept in their own job so that a
-  # refusal stops the run outright. A step cannot skip the rest of its job, so
-  # doing this inline would leave an unauthorised trigger running the analysis.
+  # Authorisation, command parsing and pull request resolution are kept in their
+  # own job so that a refusal stops the run outright: a step cannot skip the rest
+  # of its job, so gating inline would let a rejected trigger fall through to the
+  # analysis. This job never checks out or executes pull request code, which is
+  # why it is also the only one holding a write-capable GH_TOKEN.
   authorize:
     name: "authorize"
     # `startsWith(comment.body, '/sonar')` is deliberately coarse: a false
@@ -51,6 +56,13 @@ jobs:
         (github.event.issue.pull_request != null &&
           startsWith(github.event.comment.body, '/sonar')))
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # `gh pr view` needs pull request read; the acknowledgement needs write.
+      # A comment on a pull request is an issue comment, so the reaction
+      # endpoint needs `issues: write` rather than `pull-requests: write`.
+      issues: write
+      pull-requests: write
     outputs:
       proceed: ${{ steps.command.outputs.proceed }}
       head_sha: ${{ steps.pr.outputs.head_sha }}
@@ -61,20 +73,43 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       PR_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.pr || github.event.issue.number }}
     steps:
-      - name: "❓ Check this is the /sonar command"
+      - name: "❓ Parse the /sonar command"
         id: command
         env:
           COMMENT_BODY: ${{ github.event.comment.body }}
+          INPUT_SHA: ${{ inputs.sha }}
         run: |
           proceed=true
+          requested_sha="$INPUT_SHA"
+
           if [ "$GITHUB_EVENT_NAME" = "issue_comment" ]; then
-            command=$(printf '%s' "$COMMENT_BODY" | head -n 1 | tr -d '\r' | xargs)
-            if [ "$command" != "/sonar" ]; then
-              echo "Ignoring comment: '${command}' is not the '/sonar' command."
+            line=$(printf '%s' "$COMMENT_BODY" | head -n 1 | tr -d '\r')
+            # Word splitting does the trimming. `xargs` is avoided because it
+            # aborts on an unbalanced quote in the comment, and `set -f` stops a
+            # `*` in the comment being expanded against the workspace.
+            set -f
+            # shellcheck disable=SC2086
+            set -- $line
+            set +f
+            if [ "${1:-}" != "/sonar" ]; then
+              echo "Ignoring comment: '${1:-}' is not the '/sonar' command."
               proceed=false
+            else
+              requested_sha="${2:-}"
             fi
           fi
+
+          if [ "$proceed" = "true" ] && [ -n "$requested_sha" ]; then
+            case "$requested_sha" in
+              *[!0-9a-fA-F]*|"")
+                echo "::error::'${requested_sha}' is not a commit SHA."
+                exit 1
+                ;;
+            esac
+          fi
+
           echo "proceed=${proceed}" >> "$GITHUB_OUTPUT"
+          echo "requested_sha=${requested_sha}" >> "$GITHUB_OUTPUT"
 
       - name: "🔐 Verify the requester has write access"
         if: steps.command.outputs.proceed == 'true'
@@ -102,11 +137,30 @@ jobs:
       - name: "🔎 Resolve the pull request"
         id: pr
         if: steps.command.outputs.proceed == 'true'
+        env:
+          REQUESTED_SHA: ${{ steps.command.outputs.requested_sha }}
         run: |
           gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" \
             --json headRefOid,headRefName,baseRefName,isCrossRepository > "${RUNNER_TEMP}/pr.json"
+          head_sha=$(jq -r '.headRefOid' "${RUNNER_TEMP}/pr.json")
+
+          # Close the window between the maintainer reading the diff and this run
+          # starting: if they named the commit they reviewed, refuse to analyse
+          # anything else.
+          if [ -n "$REQUESTED_SHA" ]; then
+            case "$head_sha" in
+              "$REQUESTED_SHA"*) ;;
+              *)
+                echo "::error::#${PR_NUMBER} has moved on to ${head_sha} since ${REQUESTED_SHA} was reviewed. Review the new commit and trigger again."
+                exit 1
+                ;;
+            esac
+          else
+            echo "::warning::No reviewed commit was given, so ${head_sha} is analysed as-is. Pass '/sonar <sha>' to pin the run to the commit you reviewed."
+          fi
+
           {
-            echo "head_sha=$(jq -r '.headRefOid' "${RUNNER_TEMP}/pr.json")"
+            echo "head_sha=${head_sha}"
             echo "head_branch=$(jq -r '.headRefName' "${RUNNER_TEMP}/pr.json")"
             echo "base_branch=$(jq -r '.baseRefName' "${RUNNER_TEMP}/pr.json")"
           } >> "$GITHUB_OUTPUT"
@@ -115,35 +169,21 @@ jobs:
             echo ""
             echo "| | |"
             echo "|---|---|"
-            echo "| Head commit | \`$(jq -r '.headRefOid' "${RUNNER_TEMP}/pr.json")\` |"
+            echo "| Head commit | \`${head_sha}\` |"
+            echo "| Pinned to reviewed commit | ${REQUESTED_SHA:-no} |"
             echo "| Head branch | \`$(jq -r '.headRefName' "${RUNNER_TEMP}/pr.json")\` |"
             echo "| Base branch | \`$(jq -r '.baseRefName' "${RUNNER_TEMP}/pr.json")\` |"
             echo "| From a fork | $(jq -r '.isCrossRepository' "${RUNNER_TEMP}/pr.json") |"
             echo "| Triggered by | @${GITHUB_ACTOR} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-  sonar:
-    name: "sonar"
-    needs: authorize
-    if: needs.authorize.outputs.proceed == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      # A comment on a pull request is an issue comment, so the acknowledgement
-      # step needs `issues: write` for the reaction endpoint as well as
-      # `pull-requests: write` for `gh pr comment`.
-      issues: write
-      pull-requests: write
-    env:
-      TESTCONTAINERS_RYUK_DISABLED: true
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      PR_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.pr || github.event.issue.number }}
-    steps:
+      # Acknowledged from this job, not from `sonar`, so that the write-capable
+      # GH_TOKEN is never present in an environment that runs pull request code.
       - name: "💬 Acknowledge the comment"
-        if: github.event_name == 'issue_comment'
+        if: steps.command.outputs.proceed == 'true' && github.event_name == 'issue_comment'
         continue-on-error: true
         env:
-          HEAD_SHA: ${{ needs.authorize.outputs.head_sha }}
+          HEAD_SHA: ${{ steps.pr.outputs.head_sha }}
           COMMENT_ID: ${{ github.event.comment.id }}
         run: |
           gh api --method POST \
@@ -152,6 +192,26 @@ jobs:
           gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body \
             "Running Sonar analysis on \`${HEAD_SHA}\`: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
+  sonar:
+    name: "sonar"
+    needs: authorize
+    if: needs.authorize.outputs.proceed == 'true'
+    runs-on: ubuntu-latest
+    # Concurrency is scoped to this job rather than the workflow: at workflow
+    # level, every unrelated comment on the pull request would join the group and
+    # cancel an analysis that is already running.
+    concurrency:
+      group: sonar-pr-${{ github.event_name == 'workflow_dispatch' && inputs.pr || github.event.issue.number }}
+      cancel-in-progress: true
+    # This job checks out and executes contributor-controlled build scripts, so it
+    # holds no write permission and no GH_TOKEN. SONAR_TOKEN is the only secret it
+    # needs, and it is scoped to the analysis step alone.
+    permissions:
+      contents: read
+    env:
+      TESTCONTAINERS_RYUK_DISABLED: true
+      PR_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.pr || github.event.issue.number }}
+    steps:
       # https://github.com/actions/virtual-environments/issues/709
       - name: Remove system JDKs
         run: |
