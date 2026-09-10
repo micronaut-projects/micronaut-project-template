@@ -6,7 +6,8 @@
 name: Update Gradle Wrapper
 on:
   schedule:
-    - cron: '0 3 * * SAT'
+    - cron: '0 1 * * SAT'
+      timezone: 'Europe/Madrid'
 jobs:
   update-wrapper:
     if: github.repository == 'micronaut-projects/micronaut-project-template'
