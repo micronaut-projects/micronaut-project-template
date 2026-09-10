@@ -7,7 +7,8 @@ on:
         required: false
         type: string
   schedule:
-    - cron: '0 5 * * *'
+    - cron: '0 1 * * *'
+      timezone: 'Europe/Madrid'
 
 permissions:
   contents: read
