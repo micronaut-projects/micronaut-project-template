@@ -4,9 +4,10 @@
 #
 # and edit them there. Note that it will be sync'ed to all the Micronaut repos
 name: GraalVM Latest CI
-# Called by Java CI (gradle.yml) once its build job passes. The caller's triggers, draft
-# check and concurrency group apply; a concurrency block here would resolve to the caller's
-# group and conflict with it.
+# Called by Java CI (gradle.yml) once its build job passes and the Sonar quality gate did not
+# fail. The caller's triggers, draft check and concurrency group cover this workflow, so it
+# declares no concurrency of its own; reusing the caller's group expression here would make
+# the called jobs wait on, or cancel, their own run.
 on:
   workflow_call:
 jobs:
