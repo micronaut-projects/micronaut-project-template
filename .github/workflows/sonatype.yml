@@ -26,6 +26,11 @@ on:
       - '.github/workflows/release.yml'
       - '.github/scripts/vulnerability-audit.sh'
       - '.github/scripts/vulnerability-audit-filter.py'
+# A new push to a pull request cancels its older run, freeing the shared runner
+# pool.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
 jobs:
   audit:
     if: github.repository != 'micronaut-projects/micronaut-project-template' && github.event.pull_request.draft == false
