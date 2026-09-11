@@ -4,27 +4,17 @@
 #
 # and edit them there. Note that it will be sync'ed to all the Micronaut repos
 name: GraalVM Latest CI
+# Called by Java CI (gradle.yml) once its build job passes. The caller's triggers, draft
+# check and concurrency group apply; a concurrency block here would resolve to the caller's
+# group and conflict with it.
 on:
-  push:
-    branches:
-      - master
-      - main
-      - '[0-9]+.[0-9]+.x'
-  pull_request:
-    branches:
-      - master
-      - main
-      - '[0-9]+.[0-9]+.x'
-    types: [opened, synchronize, reopened, ready_for_review]
-# A new push to a pull request cancels its older run, freeing the shared runner
-# pool. Pushes to branches get a group of their own and are never cancelled.
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: true
+  workflow_call:
 jobs:
   build_matrix:
     if: github.repository != 'micronaut-projects/micronaut-project-template' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
+    env:
+      ORG_GRADLE_PROJECT_cachePush: ${{ github.event_name == 'push' }}
     outputs:
       matrix: ${{ steps.build-matrix.outputs.matrix }}
     steps:
@@ -42,6 +32,8 @@ jobs:
     needs: build_matrix
     if: github.repository != 'micronaut-projects/micronaut-project-template'
     runs-on: ubuntu-latest
+    env:
+      ORG_GRADLE_PROJECT_cachePush: ${{ github.event_name == 'push' }}
     strategy:
       max-parallel: 6
       matrix:

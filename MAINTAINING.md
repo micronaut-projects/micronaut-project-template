@@ -122,7 +122,8 @@ template repo will get propagated automatically. The files propagated are:
 * Workflow files (`.github/workflows/*`). They are copied using rsync:
   * `central-sync.yml`.
   * `graalvm-dev.yml`.
-  * `graalvm-latest.yml`.
+  * `graalvm-latest.yml`. Java CI (`gradle.yml`) calls it after its build job passes, so a repository that keeps its own
+    `gradle.yml` must add the `native` job itself.
   * `gradle.yml`.
   * `publish-snapshot.yml`.
   * `release.yml`.
