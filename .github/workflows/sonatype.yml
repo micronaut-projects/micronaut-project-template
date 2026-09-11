@@ -8,6 +8,7 @@ on:
   pull_request:
     branches:
       - '[0-9]+.[0-9]+.x'
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - '**/*.gradle'
       - '**/*.gradle.kts'
@@ -27,7 +28,7 @@ on:
       - '.github/scripts/vulnerability-audit-filter.py'
 jobs:
   audit:
-    if: github.repository != 'micronaut-projects/micronaut-project-template'
+    if: github.repository != 'micronaut-projects/micronaut-project-template' && github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     strategy:
       matrix:
