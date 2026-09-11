@@ -33,6 +33,12 @@
       "allowedVersions": "!/.+-SNAPSHOT$/"
     },
     {
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["digest"],
+      "groupName": "GitHub Actions digest updates",
+      "groupSlug": "github-actions-digest"
+    },
+    {
       "matchUpdateTypes": [
         "patch"
       ],
