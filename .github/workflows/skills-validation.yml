@@ -5,12 +5,13 @@ on:
     paths:
       - ".agents/skills/**"
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - ".agents/skills/**"
 
 jobs:
   validate-and-audit-skills:
-    if: github.repository == 'micronaut-projects/micronaut-project-template'
+    if: github.repository == 'micronaut-projects/micronaut-project-template' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
     permissions:
       contents: read
