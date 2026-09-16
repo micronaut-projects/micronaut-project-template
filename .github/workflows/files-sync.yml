@@ -27,10 +27,8 @@ jobs:
           repos=(
             acme
             aot
-            avro
             aws
             azure
-            build-plugin-sourcegen
             cache
             cassandra
             chatbots
@@ -276,11 +274,17 @@ jobs:
           echo "Waiting for required checks..."
           if gh pr checks "${PR_URL}" --required --watch --fail-fast --interval 30; then
             echo "Checks passed; merging ${PR_URL}."
-            gh pr merge "${PR_URL}" \
+            # The merge can still be refused, e.g. when the target repository requires
+            # checks that gh does not consider "required", or when the head moved.
+            # That is not a failure of this workflow: leave the PR for a maintainer.
+            if gh pr merge "${PR_URL}" \
               --squash \
               --delete-branch \
-              --match-head-commit "${head_sha}"
+              --match-head-commit "${head_sha}"; then
+              echo "Merged ${PR_URL}."
+            else
+              echo "${PR_URL} could not be merged automatically; leaving PR open."
+            fi
           else
             echo "Checks failed, were cancelled, or timed out; leaving PR open."
-            exit 0
           fi
