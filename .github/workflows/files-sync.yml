@@ -27,10 +27,8 @@ jobs:
           repos=(
             acme
             aot
-            avro
             aws
             azure
-            build-plugin-sourcegen
             cache
             cassandra
             chatbots
@@ -276,11 +274,27 @@ jobs:
           echo "Waiting for required checks..."
           if gh pr checks "${PR_URL}" --required --watch --fail-fast --interval 30; then
             echo "Checks passed; merging ${PR_URL}."
-            gh pr merge "${PR_URL}" \
+            # The merge can still be refused, e.g. when the target repository requires
+            # checks that gh does not consider "required", or when the head moved.
+            # That is not a failure of this workflow: leave the PR for a maintainer.
+            # Anything else (auth, rate limit, an API outage) must still fail the job.
+            if merge_log="$(gh pr merge "${PR_URL}" \
               --squash \
               --delete-branch \
-              --match-head-commit "${head_sha}"
+              --match-head-commit "${head_sha}" 2>&1)"; then
+              echo "Merged ${PR_URL}."
+            else
+              echo "${merge_log}"
+              case "${merge_log}" in
+                *"not mergeable"*|*"not in the correct state"*|*"head commit"*|*"has changed"*)
+                  echo "${PR_URL} cannot be merged right now; leaving it open for a maintainer."
+                  ;;
+                *)
+                  echo "::error::gh pr merge failed for ${PR_URL} for an unexpected reason."
+                  exit 1
+                  ;;
+              esac
+            fi
           else
             echo "Checks failed, were cancelled, or timed out; leaving PR open."
-            exit 0
           fi
