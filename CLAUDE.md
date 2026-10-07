@@ -13,7 +13,7 @@ Notes for maintainers. Claude Code strips HTML comments before the model reads t
 
 - If the shared skills are missing from your skill list (no symlinks, as on Windows by default), read them in `.agents/skills/`.
 - Outside micronaut-project-template, the nightly files sync overwrites `.agents/skills`, where `.claude/skills` points. Give each skill file you add or edit there a `<file>.lock` beside it (such as `SKILL.md.lock`), or the sync deletes or reverts it.
-- Pick the base branch before you write code: fixes go to the branch whose `projectVersion` is the next patch of the latest release, features to the next minor. The default branch can be either. Maintainers merge fixes up; open backports or forward ports only when asked.
+- Pick the base branch before you write code: fixes go to the branch whose `projectVersion` is the next patch of the latest release, features to the next minor. Each `x.y.x` branch keeps an `x.y.z-SNAPSHOT` version: never move a branch to another minor, and if the next minor's branch does not exist yet, ask a maintainer to create it. The default branch can be either. Maintainers merge fixes up; open backports or forward ports only when asked.
 - Fix the cause in the module or repository that owns it. Do not add fallbacks that hide a failure.
 - Your knowledge of Micronaut APIs, the Gradle DSL and library versions is out of date. Check the target branch's sources, its version catalog and Maven Central.
 - Defaults and observable behavior count as API: write each behavior change into the guide's Breaking Changes section, even in a minor release.
