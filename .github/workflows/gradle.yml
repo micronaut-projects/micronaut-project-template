@@ -26,10 +26,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 jobs:
-  # A module can run some of its test tasks in jobs of their own, in parallel with the build, by listing
-  # them in gradle.properties: java-ci-test-shards=<tasks>,<tasks>,... where each comma separated group of
-  # test tasks (e.g. ':my-module:test' or ':a:test :b:test') is one job. The build excludes them, and for
-  # pull requests a separate sonar job analyses the coverage of the build and of every shard together.
+  # A module can run the tests of some of its projects in jobs of their own, in parallel with the build, by
+  # listing them in gradle.properties: java-ci-test-shards=<tasks>,<tasks>,... where each comma separated group
+  # of test tasks (e.g. ':my-module:test' or ':a:test :b:test') is one job. Only the `test` tasks of projects
+  # are supported, given by their full path: the test reports and the aggregated coverage cover the `test` task.
+  # The build excludes them, and for pull requests a separate sonar job analyses the coverage of the build and
+  # of every shard together.
   # Branch pushes always run every test in the build job, which publishes snapshots and docs.
   detect:
     name: "detect"
@@ -58,10 +60,14 @@ jobs:
             echo "All the tests run in the build job"
             exit 0
           fi
-          if ! [[ "$value" =~ ^[A-Za-z0-9:._,\ -]+$ ]]; then
-            echo "::error::java-ci-test-shards may only contain Gradle task paths separated by spaces and commas: $value"
-            exit 1
-          fi
+          # Only the test tasks of projects: the test reports and the aggregated coverage report cover the test task,
+          # and a task name without a path would match the test task of every project
+          for task in ${value//,/ }; do
+            if ! [[ "$task" =~ ^(:[A-Za-z0-9._-]+)*:test$ ]]; then
+              echo "::error::java-ci-test-shards only supports the full paths of test tasks, such as ':my-module:test': $task"
+              exit 1
+            fi
+          done
           shards=$(jq -cn --arg value "$value" '$value | split(",") | map(gsub("^ +| +$"; "")) | map(select(length > 0))')
           exclusions=$(echo "$value" | tr ',' ' ' | xargs -n1 | sed 's/^/-x /' | paste -sd' ' -)
           {
