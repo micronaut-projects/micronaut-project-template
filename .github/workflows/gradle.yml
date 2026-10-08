@@ -26,8 +26,59 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 jobs:
+  # A module can run the tests of some of its projects in jobs of their own, in parallel with the build, by
+  # listing them in gradle.properties: java-ci-test-shards=<tasks>,<tasks>,... where each comma separated group
+  # of test tasks (e.g. ':my-module:test' or ':a:test :b:test') is one job. Only the `test` tasks of projects
+  # are supported, given by their full path: the test reports and the aggregated coverage cover the `test` task.
+  # The build excludes them, and for pull requests a separate sonar job analyses the coverage of the build and
+  # of every shard together.
+  # Branch pushes always run every test in the build job, which publishes snapshots and docs.
+  detect:
+    name: "detect"
+    if: github.repository != 'micronaut-projects/micronaut-project-template' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
+    runs-on: ubuntu-latest
+    outputs:
+      sharded: ${{ steps.detect.outputs.sharded }}
+      shards: ${{ steps.detect.outputs.shards }}
+      exclusions: ${{ steps.detect.outputs.exclusions }}
+    steps:
+      - name: "📥 Checkout repository"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          sparse-checkout: gradle.properties
+          sparse-checkout-cone-mode: false
+      - name: "🔍 Detect test shards"
+        id: detect
+        run: |
+          value=$(sed -n 's/^java-ci-test-shards=//p' gradle.properties 2>/dev/null | tail -n 1)
+          if [ "$GITHUB_EVENT_NAME" != "pull_request" ] || [ -z "$value" ]; then
+            {
+              echo "sharded=false"
+              echo "shards=[]"
+              echo "exclusions="
+            } >> "$GITHUB_OUTPUT"
+            echo "All the tests run in the build job"
+            exit 0
+          fi
+          # Only the test tasks of projects: the test reports and the aggregated coverage report cover the test task,
+          # and a task name without a path would match the test task of every project
+          for task in ${value//,/ }; do
+            if ! [[ "$task" =~ ^(:[A-Za-z0-9._-]+)*:test$ ]]; then
+              echo "::error::java-ci-test-shards only supports the full paths of test tasks, such as ':my-module:test': $task"
+              exit 1
+            fi
+          done
+          shards=$(jq -cn --arg value "$value" '$value | split(",") | map(gsub("^ +| +$"; "")) | map(select(length > 0))')
+          exclusions=$(echo "$value" | tr ',' ' ' | xargs -n1 | sed 's/^/-x /' | paste -sd' ' -)
+          {
+            echo "sharded=true"
+            echo "shards=$shards"
+            echo "exclusions=$exclusions"
+          } >> "$GITHUB_OUTPUT"
+          echo "Test shards: $shards"
   build:
     name: "build"
+    needs: detect
     if: github.repository != 'micronaut-projects/micronaut-project-template' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
     strategy:
@@ -94,12 +145,37 @@ jobs:
         env:
           GH_TOKEN_PUBLIC_REPOS_READONLY: ${{ secrets.GH_TOKEN_PUBLIC_REPOS_READONLY }}
           GH_USERNAME: ${{ secrets.GH_USERNAME }}
+          # -x for each test task of the shards, which run in the test-shards jobs
+          SHARD_EXCLUSIONS: ${{ needs.detect.outputs.exclusions }}
         run: |
-          ./gradlew check jacocoReport --no-daemon --continue
+          read -ra exclusions <<< "$SHARD_EXCLUSIONS"
+          ./gradlew check jacocoReport --no-daemon --continue "${exclusions[@]}"
+
+      # For the sonar job, which analyses the coverage data of the build with the one of the shards
+      - name: "🏷 Mark coverage data"
+        if: needs.detect.outputs.sharded == 'true'
+        # Always uploaded with the coverage data: the artifact exists even when the tests produced none, and
+        # the paths of the coverage data stay relative to the repository root
+        run: echo "${{ github.job }}" > .coverage-data
+      - name: "📤 Upload coverage data"
+        if: needs.detect.outputs.sharded == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: coverage-build
+          path: |
+            .coverage-data
+            **/build/jacoco/*.exec
+          include-hidden-files: true
+          if-no-files-found: error
+          # Long enough to re-run a failed job after a weekend: the sonar job then needs the coverage data of the
+          # jobs that are not re-run. Later, it reports the expired data as missing and all jobs need a re-run
+          retention-days: 7
+          overwrite: true
 
       - name: "🔎 Run static analysis"
         id: sonar
-        if: env.SONAR_TOKEN_AVAILABLE == 'true' && matrix.java == '25'
+        # With test shards, the sonar job analyses the coverage of the build and of the shards
+        if: env.SONAR_TOKEN_AVAILABLE == 'true' && matrix.java == '25' && needs.detect.outputs.sharded != 'true'
         # Waits for the quality gate so a failing gate stops the native and Python tests, but does not
         # fail this job: snapshot and docs publishing below keep running on branch pushes.
         continue-on-error: true
@@ -150,15 +226,186 @@ jobs:
       - name: "❓ Optional cleanup step"
         run: |
           [ -f ./cleanup.sh ] && ./cleanup.sh || [ ! -f ./cleanup.sh ]
-  # Native and Python tests start only when the build and its tests passed and the Sonar quality gate
-  # did not fail, so a red or cancelled build never takes runners for their matrices.
+  test-shards:
+    name: "test (${{ matrix.tasks }})"
+    needs: detect
+    if: needs.detect.outputs.sharded == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      # every shard reports its own tests
+      fail-fast: false
+      matrix:
+        tasks: ${{ fromJson(needs.detect.outputs.shards) }}
+    env:
+      TESTCONTAINERS_RYUK_DISABLED: true
+      # Shards only run for pull requests, which only read the remote build cache
+      ORG_GRADLE_PROJECT_cachePush: false
+    steps:
+       # https://github.com/actions/virtual-environments/issues/709
+      - name: Remove system JDKs
+        run: |
+          sudo rm -rf /usr/lib/jvm/*
+          unset JAVA_HOME
+          export PATH=$(echo "$PATH" | tr ':' '\n' | grep -v '/usr/lib/jvm' | paste -sd:)
+      - name: "🗑 Free disk space"
+        run: |
+         sudo rm -rf "/usr/local/share/boost"
+         sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+         sudo rm -rf "/opt/ghc"
+         sudo rm -rf "/usr/share/dotnet"
+         sudo rm -rf "/usr/local/lib/android"
+         sudo apt-get clean
+         df -h
+
+      - name: "📥 Checkout repository"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: "🔧 Setup GraalVM CE"
+        uses: graalvm/setup-graalvm@27b360dbb857524eaf0b4c4cef364d38e5b4f173 # v1
+        with:
+          distribution: 'graalvm'
+          java-version: '25'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "🔧 Setup Gradle"
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+        with:
+          develocity-access-key: ${{ secrets.DEVELOCITY_PULL_REQUEST_ACCESS_KEY || secrets.GRADLE_ENTERPRISE_ACCESS_KEY || '' }}
+
+      - name: "❓ Optional setup step"
+        run: |
+          [ -f ./setup.sh ] && ./setup.sh || [ ! -f ./setup.sh ]
+
+      - name: "🛠 Test with Gradle"
+        env:
+          GH_TOKEN_PUBLIC_REPOS_READONLY: ${{ secrets.GH_TOKEN_PUBLIC_REPOS_READONLY }}
+          GH_USERNAME: ${{ secrets.GH_USERNAME }}
+          SHARD_TASKS: ${{ matrix.tasks }}
+        run: |
+          read -ra tasks <<< "$SHARD_TASKS"
+          ./gradlew "${tasks[@]}" --no-daemon --continue
+
+      - name: "📊 Publish Test Report"
+        if: always()
+        uses: mikepenz/action-junit-report@a9170d5795813c01ab4901ffb045b52bab4ab09d # v6
+        with:
+          check_name: Java CI / Test Report (${{ matrix.tasks }})
+          report_paths: '**/build/test-results/test/TEST-*.xml'
+          check_retries: 'true'
+
+      - name: "🏷 Mark coverage data"
+        # Always uploaded with the coverage data: the artifact exists even when the tests produced none, and
+        # the paths of the coverage data stay relative to the repository root
+        run: echo "${{ github.job }}" > .coverage-data
+      - name: "📤 Upload coverage data"
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: coverage-shard-${{ strategy.job-index }}
+          path: |
+            .coverage-data
+            **/build/jacoco/*.exec
+          include-hidden-files: true
+          if-no-files-found: error
+          # Long enough to re-run a failed job after a weekend: the sonar job then needs the coverage data of the
+          # jobs that are not re-run. Later, it reports the expired data as missing and all jobs need a re-run
+          retention-days: 7
+          overwrite: true
+
+      - name: "❓ Optional cleanup step"
+        run: |
+          [ -f ./cleanup.sh ] && ./cleanup.sh || [ ! -f ./cleanup.sh ]
+  # With test shards, analyses the coverage data of the build and of every shard together, as the build
+  # job does without shards
+  sonar:
+    name: "sonar"
+    needs: [detect, build, test-shards]
+    if: needs.detect.outputs.sharded == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      # Outcome of the static analysis step: success, failure or skipped (no Sonar token, e.g. fork pull requests)
+      sonar: ${{ steps.sonar.outcome }}
+    env:
+      SONAR_TOKEN_AVAILABLE: ${{ secrets.SONAR_TOKEN != '' }}
+      ORG_GRADLE_PROJECT_cachePush: false
+    steps:
+       # https://github.com/actions/virtual-environments/issues/709
+      - name: Remove system JDKs
+        run: |
+          sudo rm -rf /usr/lib/jvm/*
+          unset JAVA_HOME
+          export PATH=$(echo "$PATH" | tr ':' '\n' | grep -v '/usr/lib/jvm' | paste -sd:)
+
+      - name: "📥 Checkout repository"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - name: "🔧 Setup GraalVM CE"
+        uses: graalvm/setup-graalvm@27b360dbb857524eaf0b4c4cef364d38e5b4f173 # v1
+        with:
+          distribution: 'graalvm'
+          java-version: '25'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "🔧 Setup Gradle"
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+        with:
+          develocity-access-key: ${{ secrets.DEVELOCITY_PULL_REQUEST_ACCESS_KEY || secrets.GRADLE_ENTERPRISE_ACCESS_KEY || '' }}
+
+      - name: "📥 Download coverage data"
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          pattern: coverage-*
+          # One directory per artifact, to check that none is missing
+          path: ${{ runner.temp }}/coverage
+
+      - name: "🧩 Merge coverage data"
+        # The analysis needs the coverage data of the build and of every shard, or Sonar would report a lower
+        # coverage
+        env:
+          SHARDS: ${{ needs.detect.outputs.shards }}
+        run: |
+          expected="coverage-build"
+          for index in $(seq 0 $(( $(jq length <<< "$SHARDS") - 1 ))); do
+            expected="$expected coverage-shard-$index"
+          done
+          for name in $expected; do
+            if [ ! -f "$RUNNER_TEMP/coverage/$name/.coverage-data" ]; then
+              echo "::error::The coverage data $name is missing"
+              exit 1
+            fi
+            cp -R "$RUNNER_TEMP/coverage/$name/." .
+          done
+
+      - name: "🔎 Run static analysis"
+        id: sonar
+        if: env.SONAR_TOKEN_AVAILABLE == 'true'
+        # Same as the step of the build job. The tests ran in the build and test-shards jobs: the aggregated
+        # coverage report reads the coverage data downloaded from them.
+        continue-on-error: true
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GH_TOKEN_PUBLIC_REPOS_READONLY: ${{ secrets.GH_TOKEN_PUBLIC_REPOS_READONLY }}
+          GH_USERNAME: ${{ secrets.GH_USERNAME }}
+        run: |
+          ./gradlew sonar -x test --no-parallel --continue -Dsonar.qualitygate.wait=true
+  # Native and Python tests start only when the build, the test shards and their tests passed and the Sonar
+  # quality gate did not fail, so a red or cancelled build never takes runners for their matrices.
   native:
-    needs: build
-    if: needs.build.outputs.sonar != 'failure'
+    needs: [detect, build, test-shards, sonar]
+    # With test shards, the shards and the sonar job must succeed; without, they are skipped
+    if: >-
+      !cancelled() && needs.build.result == 'success' && needs.build.outputs.sonar != 'failure' &&
+      (needs.detect.outputs.sharded != 'true' ||
+        (needs.test-shards.result == 'success' && needs.sonar.result == 'success' && needs.sonar.outputs.sonar != 'failure'))
     uses: ./.github/workflows/graalvm-latest.yml
     secrets: inherit
   python:
-    needs: build
-    if: needs.build.outputs.sonar != 'failure'
+    needs: [detect, build, test-shards, sonar]
+    # With test shards, the shards and the sonar job must succeed; without, they are skipped
+    if: >-
+      !cancelled() && needs.build.result == 'success' && needs.build.outputs.sonar != 'failure' &&
+      (needs.detect.outputs.sharded != 'true' ||
+        (needs.test-shards.result == 'success' && needs.sonar.result == 'success' && needs.sonar.outputs.sonar != 'failure'))
     uses: ./.github/workflows/python.yml
     secrets: inherit
