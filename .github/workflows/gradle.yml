@@ -161,9 +161,9 @@ jobs:
             **/build/jacoco/*.exec
           include-hidden-files: true
           if-no-files-found: error
-          # A failed job can be re-run up to 30 days after the run: the sonar job then needs the coverage data
-          # of the jobs that are not re-run
-          retention-days: 30
+          # Long enough to re-run a failed job after a weekend: the sonar job then needs the coverage data of the
+          # jobs that are not re-run. Later, it reports the expired data as missing and all jobs need a re-run
+          retention-days: 7
           overwrite: true
 
       - name: "🔎 Run static analysis"
@@ -300,9 +300,9 @@ jobs:
             **/build/jacoco/*.exec
           include-hidden-files: true
           if-no-files-found: error
-          # A failed job can be re-run up to 30 days after the run: the sonar job then needs the coverage data
-          # of the jobs that are not re-run
-          retention-days: 30
+          # Long enough to re-run a failed job after a weekend: the sonar job then needs the coverage data of the
+          # jobs that are not re-run. Later, it reports the expired data as missing and all jobs need a re-run
+          retention-days: 7
           overwrite: true
 
       - name: "❓ Optional cleanup step"
