@@ -16,12 +16,7 @@
 # a managed version (a version which alias starts with "managed-"
 
 [versions]
-micronaut = "5.1.12"
-micronaut-docs = "3.0.0"
-micronaut-test = "4.6.2"
-groovy = "4.0.24"
-spock = "2.3-groovy-4.0"
-
+micronaut = "5.2.2"
 # Managed versions appear in the BOM
 # managed-somelib = "1.0"
 # managed-somebom = "1.1"
