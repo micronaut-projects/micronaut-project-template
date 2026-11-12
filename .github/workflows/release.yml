@@ -4,11 +4,48 @@
 #
 # and edit them there. Note that it will be sync'ed to all the Micronaut repos
 name: Release
+run-name: >-
+  ${{ github.event_name == 'workflow_dispatch'
+  && format('Release train {0} {1} v{2}', inputs.train-id, inputs.mode, inputs.version)
+  || format('Release {0}', github.event.release.name || github.ref_name) }}
 on:
   release:
     types: [published]
+  # Release train entry point. micronaut-platform dispatches this workflow twice per module:
+  #  1. mode=stage: commit and tag the release, publish to the Sonatype Central Portal as a
+  #     USER_MANAGED deployment (validated, not public) and generate SLSA provenance. The platform
+  #     then verifies the BOM against the staged artifacts and publishes (or drops) the deployment.
+  #  2. mode=finalize: publish the GitHub release, the docs and run post-release.
+  # The `release: published` path below is unchanged and does not run on dispatch.
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Release train step to run'
+        required: true
+        type: choice
+        options:
+          - stage
+          - finalize
+      version:
+        description: 'Version to release, without the v prefix (e.g. 5.2.3)'
+        required: true
+        type: string
+      branch:
+        description: 'Branch to release from (e.g. 5.2.x)'
+        required: true
+        type: string
+      train-id:
+        description: 'Release train identifier, used to correlate runs'
+        required: true
+        type: string
+      stage-run-id:
+        description: 'finalize only: run id of the stage run to take the artifacts and provenance from'
+        required: false
+        type: string
+        default: ''
 jobs:
   release:
+    if: github.event_name == 'release'
     outputs:
       artifacts-sha256: ${{ steps.hash.outputs.artifacts-sha256 }} # Computed hashes for build artifacts.
     runs-on: ubuntu-latest
@@ -142,6 +179,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   provenance-subject:
+    if: github.event_name == 'release'
     needs: [release]
     runs-on: ubuntu-latest
     outputs:
@@ -162,6 +200,7 @@ jobs:
         run: echo "artifacts-sha256=$(cat artifacts-sha256)" >> "$GITHUB_OUTPUT"
 
   provenance:
+    if: github.event_name == 'release'
     needs: [release, provenance-subject]
     permissions:
       actions: read # To read the workflow path.
@@ -178,7 +217,7 @@ jobs:
     permissions:
       contents: write # To add assets to a release.
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
+    if: github.event_name == 'release' && startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -200,3 +239,402 @@ jobs:
         uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
           files: artifacts.zip
+
+  # ---------------------------------------------------------------------------------------------
+  # Release train: stage mode (workflow_dispatch, mode=stage)
+  # ---------------------------------------------------------------------------------------------
+  stage:
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'stage'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # Git pushes use the GH_TOKEN credentials persisted by actions/checkout.
+    outputs:
+      artifacts-sha256: ${{ steps.hash.outputs.artifacts-sha256 }} # Computed hashes for build artifacts.
+      deployment-id: ${{ steps.deployment.outputs.deployment-id }} # Sonatype Central Portal deployment id.
+    steps:
+      - name: Validate inputs
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          TARGET_BRANCH: ${{ inputs.branch }}
+          TRAIN_ID: ${{ inputs.train-id }}
+        run: |
+          if [[ ! "${RELEASE_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-(M|RC)[0-9]+)?$ ]]; then
+            echo "::error::Invalid version '${RELEASE_VERSION}'. Expected e.g. 5.2.3 or 5.2.3-RC1 (no v prefix)."
+            exit 1
+          fi
+          if ! git check-ref-format --branch "${TARGET_BRANCH}" > /dev/null; then
+            echo "::error::Invalid branch '${TARGET_BRANCH}'."
+            exit 1
+          fi
+          if [[ -z "${TRAIN_ID}" ]]; then
+            echo "::error::train-id is required."
+            exit 1
+          fi
+      - name: Remove system JDKs
+        run: |
+          sudo rm -rf /usr/lib/jvm/*
+          unset JAVA_HOME
+          PATH=$(echo "$PATH" | tr ':' '\n' | grep -v '/usr/lib/jvm' | paste -sd:)
+          export PATH
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.branch }}
+          token: ${{ secrets.GH_TOKEN }}
+      - uses: gradle/actions/wrapper-validation@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+      - name: Set up JDK
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        with:
+          distribution: 'temurin'
+          java-version: |
+            25
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+      - name: Vulnerability Audit
+        env:
+          DEVELOCITY_ACCESS_KEY: ${{ secrets.GRADLE_ENTERPRISE_ACCESS_KEY }}
+          DEVELOCITY_CACHE_USERNAME: ${{ secrets.GRADLE_ENTERPRISE_CACHE_USERNAME }}
+          DEVELOCITY_CACHE_PASSWORD: ${{ secrets.GRADLE_ENTERPRISE_CACHE_PASSWORD }}
+          GH_TOKEN_PUBLIC_REPOS_READONLY: ${{ secrets.GH_TOKEN_PUBLIC_REPOS_READONLY }}
+          GH_USERNAME: ${{ secrets.GH_USERNAME }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          release_version="${RELEASE_VERSION}"
+          if [[ "${release_version}" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+-(M|RC)[0-9]+$ ]]; then
+            echo "Running vulnerability audit in advisory mode for ${release_version}"
+            VULNERABILITY_AUDIT_ENFORCEMENT=advisory .github/scripts/vulnerability-audit.sh
+          else
+            .github/scripts/vulnerability-audit.sh
+          fi
+      - name: Run pre-release
+        # Stage mode needs the pre-release action to read RELEASE_VERSION/TARGET_BRANCH and to skip
+        # closing the release when there is no release event:
+        # https://github.com/micronaut-projects/github-actions/pull/60
+        # TODO: repin to micronaut-projects/github-actions master once PR #60 is merged.
+        uses: micronaut-projects/github-actions/pre-release@4e477ab3e7e77016a51c5e6dae440f3644ef3a85 # release-train-inputs
+        env:
+          MICRONAUT_BUILD_EMAIL: ${{ secrets.MICRONAUT_BUILD_EMAIL }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          TARGET_BRANCH: ${{ inputs.branch }}
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Stage to Sonatype Central Portal
+        # USER_MANAGED: the deployment stops once VALIDATED and is not published to Maven Central.
+        # micronaut-platform publishes (or drops) it after verifying the BOM against the staged
+        # artifacts. Requires a micronaut-build version that writes build/central-deployment-id.txt.
+        env:
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+          GPG_PASSWORD: ${{ secrets.GPG_PASSWORD }}
+          GPG_FILE: ${{ secrets.GPG_FILE }}
+          DEVELOCITY_ACCESS_KEY: ${{ secrets.GRADLE_ENTERPRISE_ACCESS_KEY }}
+          DEVELOCITY_CACHE_USERNAME: ${{ secrets.GRADLE_ENTERPRISE_CACHE_USERNAME }}
+          DEVELOCITY_CACHE_PASSWORD: ${{ secrets.GRADLE_ENTERPRISE_CACHE_PASSWORD }}
+        run: |
+          echo "$GPG_FILE" | base64 -d > secring.gpg
+          # Publish both locally and to Sonatype.
+          # The artifacts stored locally will be used to generate the SLSA provenance.
+          ./gradlew publishToMavenCentral --publishing-type=USER_MANAGED
+      - name: Read Central deployment id
+        id: deployment
+        run: |
+          deployment_file=build/central-deployment-id.txt
+          if [[ ! -s "${deployment_file}" ]]; then
+            echo "::error::${deployment_file} was not written. Upgrade micronaut-build to a version that supports --publishing-type=USER_MANAGED staging."
+            exit 1
+          fi
+          deployment_id=$(tr -d '[:space:]' < "${deployment_file}")
+          echo "deployment-id=${deployment_id}" >> "$GITHUB_OUTPUT"
+      - name: Generate subject
+        id: hash
+        run: |
+          # Find all files in the local publication repository.
+          cd build/repo
+          mapfile -d '' ARTIFACTS < <(find . -type f -printf '%P\0' | sort -z)
+          if [[ ${#ARTIFACTS[@]} -eq 0 ]]; then
+            echo "No publication artifacts found" >&2
+            exit 1
+          fi
+          # Compute the hashes for the publication artifacts.
+          HASHES=$(sha256sum -- "${ARTIFACTS[@]}" | base64 -w0)
+          cd ../..
+          # Set the hash as job output for debugging.
+          echo "artifacts-sha256=$HASHES" >> "$GITHUB_OUTPUT"
+          # Store the hash in a file, which is uploaded as a workflow artifact.
+          echo -n "$HASHES" > artifacts-sha256
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: gradle-build-outputs
+          path: build/repo
+          retention-days: 5
+      - name: Upload artifacts-sha256
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: artifacts-sha256
+          path: artifacts-sha256
+          retention-days: 5
+      - name: Upload Central deployment id
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: central-deployment
+          path: build/central-deployment-id.txt
+          retention-days: 5
+      - name: Write job summary
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          TARGET_BRANCH: ${{ inputs.branch }}
+          TRAIN_ID: ${{ inputs.train-id }}
+          DEPLOYMENT_ID: ${{ steps.deployment.outputs.deployment-id }}
+        run: |
+          {
+            echo "### Release train stage: v${RELEASE_VERSION}"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Train id | \`${TRAIN_ID}\` |"
+            echo "| Version | \`${RELEASE_VERSION}\` |"
+            echo "| Branch | \`${TARGET_BRANCH}\` |"
+            echo "| Tag commit | \`$(git rev-parse "v${RELEASE_VERSION}^{commit}")\` |"
+            echo "| Central deployment id | \`${DEPLOYMENT_ID}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  stage-provenance-subject:
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'stage'
+    needs: [stage]
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      artifacts-sha256: ${{ steps.set-hash.outputs.artifacts-sha256 }}
+    steps:
+      - name: Download artifacts-sha256
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: artifacts-sha256
+      # Same workaround as provenance-subject above.
+      # See https://github.com/community/community/discussions/37942.
+      - name: Set artifacts-sha256 as output
+        id: set-hash
+        shell: bash
+        run: echo "artifacts-sha256=$(cat artifacts-sha256)" >> "$GITHUB_OUTPUT"
+
+  stage-provenance:
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'stage'
+    needs: [stage, stage-provenance-subject]
+    permissions:
+      actions: read # To read the workflow path.
+      id-token: write # To sign the provenance.
+      # Nothing is uploaded to a release (upload-assets: false), but the generator's upload-assets
+      # job declares contents: write and called workflows cannot request more than the caller grants.
+      contents: write
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@f7dd8c54c2067bafc12ca7a55595d5ee9b75204a # v2.1.0
+    with:
+      base64-subjects: "${{ needs.stage-provenance-subject.outputs.artifacts-sha256 }}"
+      upload-assets: false # No release exists yet: keep the provenance as a workflow artifact for finalize.
+      provenance-name: multiple.intoto.jsonl # Artifact name the finalize job downloads.
+      compile-generator: true # Build the generator from source.
+
+  # ---------------------------------------------------------------------------------------------
+  # Release train: finalize mode (workflow_dispatch, mode=finalize)
+  # Runs after micronaut-platform has published the Central deployment created by the stage run.
+  # ---------------------------------------------------------------------------------------------
+  finalize:
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'finalize'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read # To download artifacts from the stage run.
+      contents: write # To publish the GitHub release and upload its assets.
+      issues: write # post-release closes and creates milestones.
+    steps:
+      - name: Validate inputs
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          TARGET_BRANCH: ${{ inputs.branch }}
+          STAGE_RUN_ID: ${{ inputs.stage-run-id }}
+        run: |
+          if [[ ! "${RELEASE_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-(M|RC)[0-9]+)?$ ]]; then
+            echo "::error::Invalid version '${RELEASE_VERSION}'. Expected e.g. 5.2.3 or 5.2.3-RC1 (no v prefix)."
+            exit 1
+          fi
+          if ! git check-ref-format --branch "${TARGET_BRANCH}" > /dev/null; then
+            echo "::error::Invalid branch '${TARGET_BRANCH}'."
+            exit 1
+          fi
+          if [[ ! "${STAGE_RUN_ID}" =~ ^[0-9]+$ ]]; then
+            echo "::error::stage-run-id is required in finalize mode and must be a workflow run id."
+            exit 1
+          fi
+      - name: Remove system JDKs
+        run: |
+          sudo rm -rf /usr/lib/jvm/*
+          unset JAVA_HOME
+          PATH=$(echo "$PATH" | tr ':' '\n' | grep -v '/usr/lib/jvm' | paste -sd:)
+          export PATH
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: refs/tags/v${{ inputs.version }}
+          token: ${{ secrets.GH_TOKEN }}
+      - uses: gradle/actions/wrapper-validation@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+      - name: Set up JDK
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        with:
+          distribution: 'temurin'
+          java-version: |
+            25
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+      - name: Download build artifacts from stage run
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: gradle-build-outputs
+          path: build/repo
+          run-id: ${{ inputs.stage-run-id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download artifacts-sha256 from stage run
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: artifacts-sha256
+          path: stage
+          run-id: ${{ inputs.stage-run-id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download provenance from stage run
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: multiple.intoto.jsonl
+          path: provenance
+          run-id: ${{ inputs.stage-run-id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify downloaded artifacts
+        run: |
+          # The provenance attests to these hashes, so the files attached to the release must match.
+          cd build/repo
+          base64 -d < ../../stage/artifacts-sha256 | sha256sum --quiet -c -
+      - name: Generate docs
+        run: ./gradlew docs
+        env:
+          DEVELOCITY_ACCESS_KEY: ${{ secrets.GRADLE_ENTERPRISE_ACCESS_KEY }}
+          DEVELOCITY_CACHE_USERNAME: ${{ secrets.GRADLE_ENTERPRISE_CACHE_USERNAME }}
+          DEVELOCITY_CACHE_PASSWORD: ${{ secrets.GRADLE_ENTERPRISE_CACHE_PASSWORD }}
+          GH_TOKEN_PUBLIC_REPOS_READONLY: ${{ secrets.GH_TOKEN_PUBLIC_REPOS_READONLY }}
+          GH_USERNAME: ${{ secrets.GH_USERNAME }}
+      - name: Export Gradle Properties
+        uses: micronaut-projects/github-actions/export-gradle-properties@5f587657fc12601ab92d64d077f99a54c3cbdf78 # master
+      - name: Determine release flags
+        id: flags
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          # There is no release event here, so compute what the release job derives from it:
+          # M/RC versions are pre-releases, and only the highest GA version is the latest release.
+          prerelease=false
+          if [[ "${RELEASE_VERSION}" =~ -(M|RC)[0-9]+$ ]]; then
+            prerelease=true
+          fi
+          latest_tag=$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq '.tag_name' 2> /dev/null || true)
+          latest_version="${latest_tag#v}"
+          latest=false
+          if [[ "${prerelease}" == "false" ]]; then
+            if [[ -z "${latest_version}" ]] || [[ "$(printf '%s\n%s\n' "${latest_version}" "${RELEASE_VERSION}" | sort -V | tail -n 1)" == "${RELEASE_VERSION}" ]]; then
+              latest=true
+            fi
+          fi
+          beta=true
+          if [[ "${prerelease}" == "false" && "${latest}" == "true" ]]; then
+            beta=false
+          fi
+          echo "Current latest release: ${latest_tag:-none}; prerelease=${prerelease} latest=${latest} beta=${beta}"
+          {
+            echo "prerelease=${prerelease}"
+            echo "latest=${latest}"
+            echo "beta=${beta}"
+          } >> "$GITHUB_OUTPUT"
+      - name: Publish to Github Pages
+        if: success()
+        uses: micronaut-projects/github-pages-deploy-action@76d63aafbab7108d74e83be4e5b3b0501382e829 # master
+        env:
+          BETA: ${{ steps.flags.outputs.beta }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          BRANCH: gh-pages
+          FOLDER: build/docs
+          VERSION: ${{ inputs.version }}
+          TARGET_REPOSITORY: ${{ github.repository == 'micronaut-projects/micronaut-core' && env.docsRepository || github.repository }}
+          DEVELOCITY_ACCESS_KEY: ${{ secrets.GRADLE_ENTERPRISE_ACCESS_KEY }}
+          DEVELOCITY_CACHE_USERNAME: ${{ secrets.GRADLE_ENTERPRISE_CACHE_USERNAME }}
+          DEVELOCITY_CACHE_PASSWORD: ${{ secrets.GRADLE_ENTERPRISE_CACHE_PASSWORD }}
+      - name: Create artifacts archive
+        shell: bash
+        run: |
+          cd build/repo
+          find . -type f -printf '%P\n' | sort | zip -q -@ ../../artifacts.zip
+      - name: Publish GitHub release
+        # Uses GITHUB_TOKEN on purpose: events created by GITHUB_TOKEN do not start new workflow
+        # runs, so publishing this release does NOT trigger the `release: published` path above.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          TARGET_BRANCH: ${{ inputs.branch }}
+          RELEASE_TITLE: ${{ env.title }}
+          PRERELEASE: ${{ steps.flags.outputs.prerelease }}
+          MAKE_LATEST: ${{ steps.flags.outputs.latest }}
+        run: |
+          tag="v${RELEASE_VERSION}"
+          # Prefer the draft kept up to date by the release notes automation (drafts are not
+          # returned by the releases/tags endpoint, so list them).
+          release_id=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+            --jq ".[] | select(.draft and .tag_name == \"${tag}\") | .id" | head -n 1)
+          if [[ -z "${release_id}" ]]; then
+            # A re-run may find the release already published.
+            release_id=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" --jq '.id' 2> /dev/null || true)
+          fi
+          if [[ -z "${release_id}" ]]; then
+            echo "No release found for ${tag}, creating a draft"
+            release_id=$(gh api -X POST "repos/${GITHUB_REPOSITORY}/releases" \
+              -f tag_name="${tag}" \
+              -f target_commitish="${TARGET_BRANCH}" \
+              -f name="${RELEASE_TITLE:-${GITHUB_REPOSITORY#*/}} ${RELEASE_VERSION}" \
+              -F generate_release_notes=true \
+              -F draft=true \
+              --jq '.id')
+          fi
+          echo "Using release ${release_id} for ${tag}"
+          # Attach the artifacts and the provenance generated by the stage run. The SLSA provenance
+          # attests to each artifact file and not to the aggregated ZIP file.
+          for asset in artifacts.zip provenance/multiple.intoto.jsonl; do
+            name=$(basename "${asset}")
+            for existing in $(gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets" --jq ".[] | select(.name == \"${name}\") | .id"); do
+              gh api -X DELETE "repos/${GITHUB_REPOSITORY}/releases/assets/${existing}"
+            done
+            gh api -X POST "https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets?name=${name}" \
+              -H "Content-Type: application/octet-stream" \
+              --input "${asset}" --jq '.browser_download_url'
+          done
+          gh api -X PATCH "repos/${GITHUB_REPOSITORY}/releases/${release_id}" \
+            -F draft=false \
+            -F prerelease="${PRERELEASE}" \
+            -f make_latest="${MAKE_LATEST}" \
+            --jq '.html_url'
+      - name: Run post-release
+        if: success()
+        uses: micronaut-projects/github-actions/post-release@5f587657fc12601ab92d64d077f99a54c3cbdf78 # master
+        env:
+          MICRONAUT_BUILD_EMAIL: ${{ secrets.MICRONAUT_BUILD_EMAIL }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          TARGET_BRANCH: ${{ inputs.branch }}
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Write job summary
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          TRAIN_ID: ${{ inputs.train-id }}
+          STAGE_RUN_ID: ${{ inputs.stage-run-id }}
+        run: |
+          {
+            echo "### Release train finalize: v${RELEASE_VERSION}"
+            echo ""
+            echo "- Train id: \`${TRAIN_ID}\`"
+            echo "- Stage run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${STAGE_RUN_ID}"
+            echo "- Release: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/v${RELEASE_VERSION}"
+          } >> "$GITHUB_STEP_SUMMARY"
