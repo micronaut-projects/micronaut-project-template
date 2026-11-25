@@ -79,7 +79,7 @@ WORKFLOW_ACTOR = "github-actions[bot]"
 TOOL_FOOTER_PATTERNS = (
     r"generated (?:with|by) \[?(?:claude|codex|copilot|cursor|chatgpt|gemini|devin|openai|anthropic)",
     r"made with \[?cursor",
-    r"co-authored-by:.*(?:claude|anthropic|copilot|cursor|codex|openai|devin)",
+    r"^\s*co-authored-by:.*(?:claude|anthropic|copilot|cursor|codex|openai|devin)",
     r"claude\.ai/code/session_",
     r"^\s*\U0001F916",
     r"requested by .*project thread",
