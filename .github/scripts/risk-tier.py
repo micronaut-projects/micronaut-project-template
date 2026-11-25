@@ -12,13 +12,14 @@ repository's ``.github/risk-tiers.yml``, T0 when it matches the default T0 map o
 otherwise. ``gradle/libs.versions.toml`` is T1, because a version bump can change published dependencies. The
 ``type: breaking`` label, or "API or behaviour change: yes" in the pull request body, raise the tier to T2.
 
-The computed tier is a floor, not the final word: no script can see every risk in a change, so the AI reviewer
-double-checks it. When the reviewer, or a maintainer, sets a higher ``tier: ...`` label, the script keeps it and
-never lowers it. Only tier labels this workflow added itself are replaced.
+The script also reads the "Review declaration" of the pull request template, and labels the pull request with
+``risk-tier: T0``, ``T1`` or ``T2`` and ``ai-use: none``, ``assisted`` or ``agent-generated``. When the declared tier
+is lower than the computed one, the check fails.
 
-The script also reads the "Review declaration" lines of the pull request template. When the declared tier is lower
-than the computed one, the check fails. When AI use is declared as assisted or agent-generated, the matching
-``ai: ...`` label is added.
+The labels are the classification of record, and the computed tier is only a first guess: no script can see every
+risk in a change. To reclassify a pull request, the AI reviewer or a maintainer relabels it. The script keeps a
+``risk-tier:`` or ``ai-use:`` label that anyone other than this workflow added, in either direction, and only replaces
+the labels it added itself.
 
 It runs from a ``pull_request_target`` workflow, so it never checks out or runs pull request code: it reads the
 changed paths and the body through the GitHub API, and ``.github/risk-tiers.yml`` from the base branch checkout.
@@ -68,10 +69,11 @@ DEFAULT_T1_GLOBS = (
     "gradle/libs.versions.toml",
 )
 
-TIER_LABELS = {tier: f"tier: {tier}" for tier in TIERS}
-AI_LABELS = {"assisted": "ai: assisted", "agent-generated": "ai: agent-generated"}
+AI_USES = ("none", "assisted", "agent-generated")
+TIER_LABELS = {tier: f"risk-tier: {tier}" for tier in TIERS}
+AI_LABELS = {use: f"ai-use: {use}" for use in AI_USES}
 BREAKING_LABEL = "type: breaking"
-# The login GITHUB_TOKEN acts as. Tier labels added by anyone else are overrides the script keeps.
+# The login GITHUB_TOKEN acts as. Labels added by anyone else are reclassifications the script keeps.
 WORKFLOW_ACTOR = "github-actions[bot]"
 
 # Footers and banners that AI tools add to pull request descriptions. The review declaration already records AI use,
@@ -91,7 +93,7 @@ TOOL_COMMENT_PATTERNS = (
 )
 
 DECLARATION_FIELDS = {
-    "ai_use": ("ai use", ("none", "assisted", "agent-generated")),
+    "ai_use": ("ai use", AI_USES),
     "ai_tool": ("ai tool", None),
     "risk_tier": ("risk tier", TIERS),
     "api_change": ("api or behaviour change", ("yes", "no")),
@@ -233,19 +235,20 @@ def compute(paths, labels, body, config):
     }
 
 
-def override_tier(events, labels, workflow_actor=WORKFLOW_ACTOR):
-    """Returns the highest tier label on the pull request that someone other than this workflow added, or None.
+def relabelled(events, labels, family, workflow_actor=WORKFLOW_ACTOR):
+    """Returns the key of the label of ``family`` that someone other than this workflow put on the pull request, or None.
 
-    ``events`` are the issue events of the pull request, oldest first, and ``labels`` its current label names. The
-    last ``labeled`` event of a label tells who added it.
+    ``family`` maps keys to label names, like TIER_LABELS. ``events`` are the issue events of the pull request, oldest
+    first, and ``labels`` its current label names. The last ``labeled`` event of a label tells who added it. When
+    several such labels are present, the most recently added one wins.
     """
-    added_by = {}
-    for event in events:
+    added = {}
+    for index, event in enumerate(events):
         if event.get("event") == "labeled" and event.get("label"):
-            added_by[event["label"]["name"]] = (event.get("actor") or {}).get("login")
-    overrides = [tier for tier, name in TIER_LABELS.items()
-                 if name in labels and added_by.get(name) not in (None, workflow_actor)]
-    return max(overrides, key=TIERS.index, default=None)
+            added[event["label"]["name"]] = (index, (event.get("actor") or {}).get("login"))
+    candidates = [(added[name][0], key) for key, name in family.items()
+                  if name in labels and name in added and added[name][1] not in (None, workflow_actor)]
+    return max(candidates)[1] if candidates else None
 
 
 class GitHub:
@@ -338,7 +341,7 @@ def summary(result, warnings):
     if result["declared_too_low"]:
         lines += [
             f"The pull request declares {declaration['risk_tier']}, but its changes are {result['tier']}. "
-            f"Change the 'Risk tier' line of the description to {result['tier']}.",
+            f"Set the Risk tier in the review declaration to {result['tier']}.",
             "",
         ]
     if result["footers"]:
@@ -374,20 +377,19 @@ def run_event(args):
     labels = {label["name"] for label in pull_request.get("labels", [])}
     result = compute(github.changed_paths(number), labels, pull_request.get("body"), config)
 
-    override = override_tier(github.events(number), labels)
-    if override and TIERS.index(override) > TIERS.index(result["tier"]):
-        result["override"] = override
-        result["reasons"].append(f"a reviewer or maintainer raised it to {override}")
-        result["tier"] = override
+    events = github.events(number)
+    tier_override = relabelled(events, labels, TIER_LABELS)
+    if tier_override and tier_override != result["tier"]:
+        result["override"] = tier_override
+        result["reasons"].append(f"relabelled {tier_override} by a reviewer or maintainer")
+        result["tier"] = tier_override
+        declared = result["declaration"]["risk_tier"]
+        result["declared_too_low"] = declared is not None and TIERS.index(declared) < TIERS.index(tier_override)
     wanted = {TIER_LABELS[result["tier"]]}
-    ai_use = result["declaration"]["ai_use"]
-    if ai_use in AI_LABELS:
+    ai_use = relabelled(events, labels, AI_LABELS) or result["declaration"]["ai_use"]
+    if ai_use:
         wanted.add(AI_LABELS[ai_use])
     managed = set(TIER_LABELS.values()) | set(AI_LABELS.values())
-    if ai_use is None:
-        # Not declared: keep any AI label a maintainer or the reviewer set by hand.
-        managed -= set(AI_LABELS.values())
-        wanted |= labels & set(AI_LABELS.values())
     warnings = [] if args.dry_run else sync_labels(github, number, labels, wanted, managed)
 
     text = summary(result, warnings)
@@ -403,7 +405,7 @@ def run_event(args):
     if result["declared_too_low"]:
         failed = True
         print(f"::error title=Declared risk tier too low::The pull request declares {result['declaration']['risk_tier']}"
-              f", but its changes are {result['tier']}. Update the 'Risk tier' line of the description.")
+              f", but its changes are {result['tier']}. Update the Risk tier in the review declaration.")
     return 1 if failed else 0
 
 

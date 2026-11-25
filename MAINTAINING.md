@@ -105,7 +105,7 @@ A row that still lists several options, or is missing, counts as not declared.
 
 * **AI use**: `none` when no AI tool wrote any part of the change; `assisted` when a person wrote it with AI help
   (completion, chat, review suggestions); `agent-generated` when an agent wrote most of it and a person reviewed it.
-  `assisted` and `agent-generated` pull requests get the `ai: assisted` or `ai: agent-generated` label.
+  The pull request gets the matching `ai-use: none`, `ai-use: assisted` or `ai-use: agent-generated` label.
 * **AI tool**: for example Claude Code, Codex or Copilot.
 * **Risk tier**, which decides how much human review a pull request needs:
   * `T0`: build, docs, tests and synced files. Nothing published changes.
@@ -113,8 +113,8 @@ A row that still lists several options, or is missing, counts as not declared.
   * `T2`: public API, `inject`, `core-processor`, serialization, security, HTTP, or anything labelled `type: breaking`.
 
   When a pull request touches files of several tiers, the highest one wins. The tier is also computed from the changed
-  paths by the "Risk tier" workflow (`.github/workflows/risk-tier.yml`) and set as a `tier: T0`, `tier: T1` or
-  `tier: T2` label. Its `risk-tier` check fails when the declared tier is lower than the computed one. By default, tests,
+  paths by the "Risk tier" workflow (`.github/workflows/risk-tier.yml`) and set as a `risk-tier: T0`, `risk-tier: T1`
+  or `risk-tier: T2` label. Its `risk-tier` check fails when the declared tier is lower than the computed one. By default, tests,
   docs, test suites, build logic and synced files are T0, `gradle/libs.versions.toml` is T1 because a version bump can
   change published dependencies, and everything else is T1. A repository lists its T2 paths, and optionally extra T0
   paths, in `.github/risk-tiers.yml`, which is not synced:
@@ -130,9 +130,10 @@ A row that still lists several options, or is missing, counts as not declared.
   A file matching a `t2` glob is T2 even when the default map would make it T0, so prefer `src/main` globs over whole
   module directories.
 
-  The computed tier is a floor. A script cannot see every risk in a change, so the AI reviewer double-checks the tier
-  and raises it by setting a higher `tier:` label when needed; maintainers can do the same. The workflow keeps a tier
-  label added by anyone else and never lowers it.
+  The labels are the classification of record, and the computed tier is only a first guess: a script cannot see
+  every risk in a change. The AI reviewer double-checks it, and to reclassify a pull request the reviewer or a
+  maintainer just relabels it, up or down. The workflow keeps any `risk-tier:` or `ai-use:` label that someone else
+  added and only replaces its own.
 * **API or behaviour change**: `yes` when public API or user-visible behaviour changes. `yes` means T2.
 
 Every pull request gets an AI first pass before human review, reported as the "AI first pass" check. The AI reviewer

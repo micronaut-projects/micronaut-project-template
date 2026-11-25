@@ -4,8 +4,9 @@
 #
 # and edit them there. Note that it will be sync'ed to all the Micronaut repos
 name: Risk tier
-# Labels each pull request with its risk tier (tier: T0, T1 or T2), computed from the changed paths by
-# .github/scripts/risk-tier.py, and adds ai: assisted or ai: agent-generated from the declared AI use. The check
+# Labels each pull request with its risk tier (risk-tier: T0, T1 or T2), computed from the changed paths by
+# .github/scripts/risk-tier.py, and its AI use (ai-use: none, assisted or agent-generated) as declared. Relabelling
+# reclassifies a pull request: labels added by anyone else are kept. The check
 # fails when the tier declared in the pull request description is lower than the computed one. The tiers are
 # described in MAINTAINING.md, under "Risk tiers and AI disclosure", and a repository lists its T2 paths in
 # .github/risk-tiers.yml, which is not synced.
@@ -31,8 +32,8 @@ jobs:
     if: >-
       github.repository_owner == 'micronaut-projects' &&
       (!contains(fromJSON('["labeled","unlabeled"]'), github.event.action) ||
-       startsWith(github.event.label.name, 'tier: ') ||
-       startsWith(github.event.label.name, 'ai: ') ||
+       startsWith(github.event.label.name, 'risk-tier: ') ||
+       startsWith(github.event.label.name, 'ai-use: ') ||
        github.event.label.name == 'type: breaking')
     runs-on: ubuntu-latest
     permissions:
