@@ -21,7 +21,7 @@ This repository is the Micronaut template for generated module repositories. Kee
 
 - Before opening or updating a pull request, read this repository's `CONTRIBUTING.md` and follow every repo-specific PR requirement it names.
 - Write pull request descriptions in the sections of `.github/PULL_REQUEST_TEMPLATE.md` (What changed, Why, How to test, Screenshots when visible, Checklist), a few sentences or bullets each, and delete sections that do not apply. Do not add tool footers or banners such as "Generated with ...".
-- Fill in every line of the pull request template's "Review declaration" (AI use, AI tool, risk tier, API or behaviour change), keeping exactly one value per line. Agents declare `AI use: agent-generated`, or `assisted` when a person wrote the change. Tier definitions are in `MAINTAINING.md` under "Risk tiers and AI disclosure".
+- Fill in every row of the pull request template's "Review declaration" table (AI use, AI tool, risk tier, API or behaviour change), keeping exactly one value per row. Agents declare AI use `agent-generated`, or `assisted` when a person wrote the change. Tier definitions are in `MAINTAINING.md` under "Risk tiers and AI disclosure".
 - Treat contributor-checklist items as handoff requirements. If a requirement is not applicable, state that explicitly in the PR description or handoff note.
 - For UI-visible changes, confirm whether screenshots or other visual evidence are required and include them in the PR description; if screenshots cannot be provided, explain why and describe the verification that was performed.
 

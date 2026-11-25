@@ -90,17 +90,17 @@ branch). Sections that do not apply are deleted, and tool footers such as "Gener
 declaration records AI use. The synced `.claude/settings.json` turns off Claude Code's own commit trailer and pull request
 footer; the `risk-tier` check flags footers left by any other tool.
 
-Every pull request declares four values in the "Review declaration" section of the template. Each one sits on its own line, as `Key: value`, so that workflows and the AI
-reviewer can read it back:
+Every pull request declares four values in the "Review declaration" table of the template, one row per field, so
+that workflows and the AI reviewer can read them back:
 
-```
-AI use: none | assisted | agent-generated
-AI tool: <tool name, or n/a>
-Risk tier: T0 | T1 | T2
-API or behaviour change: yes | no
-```
+| Field                   | Value                              |
+|-------------------------|------------------------------------|
+| AI use                  | none / assisted / agent-generated  |
+| AI tool                 | tool name, or n/a                  |
+| Risk tier               | T0 / T1 / T2                       |
+| API or behaviour change | yes / no                           |
 
-A line that still lists several options, or is missing, counts as not declared.
+A row that still lists several options, or is missing, counts as not declared.
 
 * **AI use**: `none` when no AI tool wrote any part of the change; `assisted` when a person wrote it with AI help
   (completion, chat, review suggestions); `agent-generated` when an agent wrote most of it and a person reviewed it.

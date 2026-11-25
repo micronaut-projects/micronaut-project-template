@@ -31,14 +31,16 @@ Fixes #
 ## Review declaration
 
 <!--
-Keep one value on each line and delete the others, for example "Risk tier: T1". Reviewers and automation read these
-four lines. A line that still lists several options counts as not declared. Tiers (see MAINTAINING.md, "Risk tiers
-and AI disclosure"): T0 build, docs, tests and synced files only; T1 internal module code; T2 public API, inject,
+In the Value column, keep one option and delete the others, for example "T1". Reviewers and automation read this
+table. A row that still lists several options counts as not declared. Tiers (see MAINTAINING.md, "Risk tiers and AI
+disclosure"): T0 build, docs, tests and synced files only; T1 internal module code; T2 public API, inject,
 core-processor, serialization, security, HTTP, or anything breaking. Pick the highest tier the change touches.
 For the AI tool, name it (Claude Code, Codex, Copilot, ...), or write n/a when no AI was used.
 -->
 
-AI use: none | assisted | agent-generated
-AI tool:
-Risk tier: T0 | T1 | T2
-API or behaviour change: yes | no
+| Field                   | Value                              |
+|-------------------------|------------------------------------|
+| AI use                  | none / assisted / agent-generated  |
+| AI tool                 | n/a                                |
+| Risk tier               | T0 / T1 / T2                       |
+| API or behaviour change | yes / no                           |
