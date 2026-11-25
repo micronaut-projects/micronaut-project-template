@@ -123,6 +123,10 @@ A line that still lists several options, or is missing, counts as not declared.
 
   A file matching a `t2` glob is T2 even when the default map would make it T0, so prefer `src/main` globs over whole
   module directories.
+
+  The computed tier is a floor. A script cannot see every risk in a change, so the AI reviewer double-checks the tier
+  and raises it by setting a higher `tier:` label when needed; maintainers can do the same. The workflow keeps a tier
+  label added by anyone else and never lowers it.
 * **API or behaviour change**: `yes` when public API or user-visible behaviour changes. `yes` means T2.
 
 Every pull request gets an AI first pass before human review, reported as the "AI first pass" check. The AI reviewer

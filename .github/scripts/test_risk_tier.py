@@ -141,6 +141,30 @@ class ComputeTest(unittest.TestCase):
         self.assertFalse(rt.compute(["a/src/main/A.java"], set(), "", EMPTY)["declared_too_low"])
 
 
+def labeled(name, login):
+    return {"event": "labeled", "label": {"name": name}, "actor": {"login": login}}
+
+
+class OverrideTierTest(unittest.TestCase):
+    def test_reviewer_label_is_an_override(self):
+        events = [labeled("tier: T1", "github-actions[bot]"), labeled("tier: T2", "micronaut-reviewer[bot]")]
+        self.assertEqual(rt.override_tier(events, {"tier: T1", "tier: T2"}), "T2")
+
+    def test_own_label_is_not_an_override(self):
+        self.assertIsNone(rt.override_tier([labeled("tier: T2", "github-actions[bot]")], {"tier: T2"}))
+
+    def test_last_labeled_event_wins(self):
+        events = [labeled("tier: T2", "alvarosanchez"), labeled("tier: T2", "github-actions[bot]")]
+        self.assertIsNone(rt.override_tier(events, {"tier: T2"}))
+
+    def test_removed_label_is_ignored(self):
+        self.assertIsNone(rt.override_tier([labeled("tier: T2", "alvarosanchez")], set()))
+
+    def test_highest_override(self):
+        events = [labeled("tier: T0", "alvarosanchez"), labeled("tier: T2", "alvarosanchez")]
+        self.assertEqual(rt.override_tier(events, {"tier: T0", "tier: T2"}), "T2")
+
+
 class FakeGitHub:
     def __init__(self, existing):
         self.existing = existing

@@ -12,6 +12,10 @@ repository's ``.github/risk-tiers.yml``, T0 when it matches the default T0 map o
 otherwise. ``gradle/libs.versions.toml`` is T1, because a version bump can change published dependencies. The
 ``type: breaking`` label, or "API or behaviour change: yes" in the pull request body, raise the tier to T2.
 
+The computed tier is a floor, not the final word: no script can see every risk in a change, so the AI reviewer
+double-checks it. When the reviewer, or a maintainer, sets a higher ``tier: ...`` label, the script keeps it and
+never lowers it. Only tier labels this workflow added itself are replaced.
+
 The script also reads the "Review declaration" lines of the pull request template. When the declared tier is lower
 than the computed one, the check fails. When AI use is declared as assisted or agent-generated, the matching
 ``ai: ...`` label is added.
@@ -67,6 +71,8 @@ DEFAULT_T1_GLOBS = (
 TIER_LABELS = {tier: f"tier: {tier}" for tier in TIERS}
 AI_LABELS = {"assisted": "ai: assisted", "agent-generated": "ai: agent-generated"}
 BREAKING_LABEL = "type: breaking"
+# The login GITHUB_TOKEN acts as. Tier labels added by anyone else are overrides the script keeps.
+WORKFLOW_ACTOR = "github-actions[bot]"
 
 DECLARATION_FIELDS = {
     "ai_use": ("ai use", ("none", "assisted", "agent-generated")),
@@ -193,9 +199,25 @@ def compute(paths, labels, body, config):
         "files": per_tier,
         "reasons": reasons,
         "declaration": declaration,
+        "override": None,
         "declared_too_low": declaration["risk_tier"] is not None
         and TIERS.index(declaration["risk_tier"]) < TIERS.index(tier),
     }
+
+
+def override_tier(events, labels, workflow_actor=WORKFLOW_ACTOR):
+    """Returns the highest tier label on the pull request that someone other than this workflow added, or None.
+
+    ``events`` are the issue events of the pull request, oldest first, and ``labels`` its current label names. The
+    last ``labeled`` event of a label tells who added it.
+    """
+    added_by = {}
+    for event in events:
+        if event.get("event") == "labeled" and event.get("label"):
+            added_by[event["label"]["name"]] = (event.get("actor") or {}).get("login")
+    overrides = [tier for tier, name in TIER_LABELS.items()
+                 if name in labels and added_by.get(name) not in (None, workflow_actor)]
+    return max(overrides, key=TIERS.index, default=None)
 
 
 class GitHub:
@@ -234,6 +256,9 @@ class GitHub:
             if change.get("previous_filename"):
                 paths.append(change["previous_filename"])
         return paths
+
+    def events(self, number):
+        return self.paginate(f"issues/{number}/events")
 
     def label_exists(self, name):
         try:
@@ -318,6 +343,11 @@ def run_event(args):
     labels = {label["name"] for label in pull_request.get("labels", [])}
     result = compute(github.changed_paths(number), labels, pull_request.get("body"), config)
 
+    override = override_tier(github.events(number), labels)
+    if override and TIERS.index(override) > TIERS.index(result["tier"]):
+        result["override"] = override
+        result["reasons"].append(f"a reviewer or maintainer raised it to {override}")
+        result["tier"] = override
     wanted = {TIER_LABELS[result["tier"]]}
     ai_use = result["declaration"]["ai_use"]
     if ai_use in AI_LABELS:
