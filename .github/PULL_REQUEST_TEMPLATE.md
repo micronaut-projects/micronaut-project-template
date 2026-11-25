@@ -1,21 +1,42 @@
 <!--
-Describe the change and link the issues it closes, for example "Closes #123".
-
-Under "Review declaration", keep one value on each line and delete the others, for example "Risk tier: T1".
-Reviewers and automation read these four lines. A line that still lists several options counts as not declared.
-Tier definitions are in MAINTAINING.md, under "Review pull requests":
-  - T0: build, docs, tests and synced files only. Nothing published changes.
-  - T1: internal module code.
-  - T2: public API, inject, core-processor, serialization, security, HTTP, or anything breaking.
-  - When the change spans several tiers, pick the highest.
-For the AI tool, name it (Claude Code, Codex, Copilot, ...), or write n/a when no AI was used.
+Keep the description short and scannable: a few sentences or bullets per section, no walls of text, no logs (link
+to them). Delete the sections that do not apply. No tool footers or banners ("Generated with ...", badges): the
+review declaration below already records AI use.
 -->
 
-## Summary
+Fixes #
 
+## What changed
 
+<!-- The change in a few bullets, as a user or maintainer sees it. Call out breaking changes and new configuration. -->
+
+## Why
+
+<!-- The problem it solves, or the issue that explains it. -->
+
+## How to test
+
+<!-- What you ran (for example ./gradlew check) and how a reviewer can check the behaviour. -->
+
+## Screenshots
+
+<!-- Only for visible changes, such as the guide or a UI. Delete otherwise. -->
+
+## Checklist
+
+- [ ] Tests added or updated, or not needed because ...
+- [ ] Documentation (guide or Javadoc) updated, or not needed because ...
+- [ ] Targets the right branch: fixes the next patch, features the next minor, breaking changes the next major
 
 ## Review declaration
+
+<!--
+Keep one value on each line and delete the others, for example "Risk tier: T1". Reviewers and automation read these
+four lines. A line that still lists several options counts as not declared. Tiers (see MAINTAINING.md, "Risk tiers
+and AI disclosure"): T0 build, docs, tests and synced files only; T1 internal module code; T2 public API, inject,
+core-processor, serialization, security, HTTP, or anything breaking. Pick the highest tier the change touches.
+For the AI tool, name it (Claude Code, Codex, Copilot, ...), or write n/a when no AI was used.
+-->
 
 AI use: none | assisted | agent-generated
 AI tool:

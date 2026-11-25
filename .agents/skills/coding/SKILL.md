@@ -141,7 +141,7 @@ When finishing implementation work, report:
 7. Commands executed for verification and outcomes.
 8. Any follow-up risk (for example compatibility implications).
 
-When opening or updating a pull request, fill in the "Review declaration" lines of `.github/PULL_REQUEST_TEMPLATE.md`, one value per line, so automation can parse them:
+When opening or updating a pull request, write the description in the sections of `.github/PULL_REQUEST_TEMPLATE.md` (What changed, Why, How to test, Screenshots when visible, Checklist), keep each to a few sentences or bullets, delete sections that do not apply, and add no tool footers such as "Generated with ...". Fill in the "Review declaration" lines of `.github/PULL_REQUEST_TEMPLATE.md`, one value per line, so automation can parse them:
 
 ```
 AI use: agent-generated

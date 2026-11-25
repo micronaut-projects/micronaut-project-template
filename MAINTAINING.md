@@ -84,8 +84,12 @@ follow a slightly different strategy.
 
 ### Risk tiers and AI disclosure
 
-Every pull request declares four values in the "Review declaration" section of the pull request template
-(`.github/PULL_REQUEST_TEMPLATE.md`). Each one sits on its own line, as `Key: value`, so that workflows and the AI
+The pull request template (`.github/PULL_REQUEST_TEMPLATE.md`) asks for a short description in fixed sections: what
+changed, why, how to test, screenshots where they apply, and a three-item checklist (tests, documentation, target
+branch). Sections that do not apply are deleted, and tool footers such as "Generated with ..." are left out, since the
+declaration records AI use.
+
+Every pull request declares four values in the "Review declaration" section of the template. Each one sits on its own line, as `Key: value`, so that workflows and the AI
 reviewer can read it back:
 
 ```
