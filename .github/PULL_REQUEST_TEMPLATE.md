@@ -38,9 +38,9 @@ core-processor, serialization, security, HTTP, or anything breaking. Pick the hi
 For the AI tool, name it (Claude Code, Codex, Copilot, ...), or write n/a when no AI was used.
 -->
 
-| Field                   | Value                              |
-|-------------------------|------------------------------------|
-| AI use                  | none / assisted / agent-generated  |
-| AI tool                 | n/a                                |
-| Risk tier               | T0 / T1 / T2                       |
-| API or behaviour change | yes / no                           |
+| Field                       | Value                              |
+|-----------------------------|------------------------------------|
+| **AI use**                  | none / assisted / agent-generated  |
+| **AI tool**                 | n/a                                |
+| **Risk tier**               | T0 / T1 / T2                       |
+| **API or behaviour change** | yes / no                           |
