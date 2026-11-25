@@ -77,12 +77,13 @@ WORKFLOW_ACTOR = "github-actions[bot]"
 # Footers and banners that AI tools add to pull request descriptions. The review declaration already records AI use,
 # so the template asks for none of them, whichever agent or harness wrote the pull request.
 TOOL_FOOTER_PATTERNS = (
-    r"generated (?:with|by) \[?(?:claude|codex|copilot|cursor|chatgpt|gemini|devin|openai|anthropic)",
-    r"made with \[?cursor",
+    # Each pattern matches a whole footer line, so prose that mentions a footer does not match.
+    r"^[\s_*>]*(?:\U0001F916\s*)?generated (?:with|by) \[?(?:claude|codex|copilot|cursor|chatgpt|gemini|devin|openai|anthropic)",
+    r"^[\s_*>]*made with \[?cursor",
     r"^\s*co-authored-by:.*(?:claude|anthropic|copilot|cursor|codex|openai|devin)",
-    r"claude\.ai/code/session_",
+    r"^\s*<?https://claude\.ai/code/session_\S*>?\s*$",
     r"^\s*\U0001F916",
-    r"requested by .*project thread",
+    r"^[\s_*>]*requested by .*project thread",
 )
 # Attribution left in HTML comments, which the other patterns do not see.
 TOOL_COMMENT_PATTERNS = (
