@@ -87,8 +87,8 @@ follow a slightly different strategy.
 The pull request template (`.github/PULL_REQUEST_TEMPLATE.md`) asks for a short description in fixed sections: what
 changed, why, how to test, screenshots where they apply, and a three-item checklist (tests, documentation, target
 branch). Sections that do not apply are deleted, and tool footers such as "Generated with ..." are left out, since the
-declaration records AI use. The synced `.claude/settings.json` turns off Claude Code's own commit trailer and pull request
-footer; the `risk-tier` check flags footers left by any other tool.
+declaration records AI use. The synced `.claude/settings.json` turns off Claude Code's pull request footer and the session link
+in commits, and keeps its `Co-Authored-By` commit trailer; the `risk-tier` check flags footers left by any other tool.
 
 Every pull request declares four values in the "Review declaration" table of the template, one row per field, so
 that workflows and the AI reviewer can read them back:
@@ -171,8 +171,8 @@ template repo will get propagated automatically. The files propagated are:
   * `sonatype.yml`.
 
 * Renovate configuration (`.github/renovate.json`).
-* Claude Code project settings (`.claude/settings.json`), which turn off Claude Code's commit and pull request
-  attribution. A repository that needs its own settings keeps a `.claude/settings.json.lock` beside the file.
+* Claude Code project settings (`.claude/settings.json`), which turn off Claude Code's pull request footer and
+  commit session link, keeping the `Co-Authored-By` trailer. A repository that needs its own settings keeps a `.claude/settings.json.lock` beside the file.
 * Gradle wrapper.
 * `.gitignore`.
 * Issue templates (`.github/ISSUE_TEMPLATE/*`), the pull request template (`.github/PULL_REQUEST_TEMPLATE.md`), `LICENSE`,
