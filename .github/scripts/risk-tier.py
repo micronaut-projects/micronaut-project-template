@@ -74,6 +74,16 @@ BREAKING_LABEL = "type: breaking"
 # The login GITHUB_TOKEN acts as. Tier labels added by anyone else are overrides the script keeps.
 WORKFLOW_ACTOR = "github-actions[bot]"
 
+# Footers and banners that AI tools add to pull request descriptions. The review declaration already records AI use,
+# so the template asks for none of them, whichever agent or harness wrote the pull request.
+TOOL_FOOTER_PATTERNS = (
+    r"generated (?:with|by) \[?(?:claude|codex|copilot|cursor|chatgpt|gemini|devin|openai|anthropic)",
+    r"made with \[?cursor",
+    r"co-authored-by:.*(?:claude|anthropic|copilot|cursor|codex|openai|devin)",
+    r"claude\.ai/code/session_",
+    r"^\s*\U0001F916",
+)
+
 DECLARATION_FIELDS = {
     "ai_use": ("ai use", ("none", "assisted", "agent-generated")),
     "ai_tool": ("ai tool", None),
@@ -178,6 +188,13 @@ def parse_declaration(body):
     return result
 
 
+def tool_footers(body):
+    """Returns the lines of a pull request body that look like an AI tool footer or banner, ignoring HTML comments."""
+    body = re.sub(r"<!--.*?-->", "", body or "", flags=re.DOTALL)
+    return [line.strip() for line in body.splitlines()
+            if any(re.search(pattern, line, flags=re.IGNORECASE) for pattern in TOOL_FOOTER_PATTERNS)]
+
+
 def compute(paths, labels, body, config):
     """Returns the computed tier, the declaration, and the reasons for the tier."""
     declaration = parse_declaration(body)
@@ -200,6 +217,7 @@ def compute(paths, labels, body, config):
         "reasons": reasons,
         "declaration": declaration,
         "override": None,
+        "footers": tool_footers(body),
         "declared_too_low": declaration["risk_tier"] is not None
         and TIERS.index(declaration["risk_tier"]) < TIERS.index(tier),
     }
@@ -313,6 +331,9 @@ def summary(result, warnings):
             f"Change the 'Risk tier' line of the description to {result['tier']}.",
             "",
         ]
+    if result["footers"]:
+        lines += ["The description has AI tool footers or banners. Remove them: the review declaration already records "
+                  "AI use.", ""] + [f"- `{line}`" for line in result["footers"]] + [""]
     for tier in reversed(TIERS):
         files = result["files"][tier]
         if files:
@@ -364,11 +385,16 @@ def run_event(args):
     if os.environ.get("GITHUB_STEP_SUMMARY"):
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary_file:
             summary_file.write(text + "\n")
+    failed = False
+    if result["footers"]:
+        print("::error title=AI tool footer in the description::Remove the tool footers or banners from the pull request "
+              "description. The review declaration already records AI use.")
+        failed = True
     if result["declared_too_low"]:
+        failed = True
         print(f"::error title=Declared risk tier too low::The pull request declares {result['declaration']['risk_tier']}"
               f", but its changes are {result['tier']}. Update the 'Risk tier' line of the description.")
-        return 1
-    return 0
+    return 1 if failed else 0
 
 
 def run_replay(args):
