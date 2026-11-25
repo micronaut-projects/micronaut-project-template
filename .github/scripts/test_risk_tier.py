@@ -2,7 +2,10 @@
 """Unit tests for risk-tier.py. Run with: python3 .github/scripts/test_risk_tier.py"""
 import importlib.util
 import os
+import sys
 import unittest
+
+sys.dont_write_bytecode = True
 
 _spec = importlib.util.spec_from_file_location(
     "risk_tier", os.path.join(os.path.dirname(os.path.abspath(__file__)), "risk-tier.py"))
