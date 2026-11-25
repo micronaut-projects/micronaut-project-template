@@ -185,6 +185,7 @@ jobs:
             .github/ISSUE_TEMPLATE/config.yml
             .github/ISSUE_TEMPLATE/new_feature.yaml
             .github/ISSUE_TEMPLATE/other.yaml
+            .github/PULL_REQUEST_TEMPLATE.md
             .sdkmanrc
             gradle/wrapper/gradle-wrapper.jar
             gradle/wrapper/gradle-wrapper.properties

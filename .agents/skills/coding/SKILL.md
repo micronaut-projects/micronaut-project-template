@@ -5,7 +5,7 @@ license: Apache-2.0
 compatibility: Micronaut framework repositories in micronaut-projects generated from micronaut-project-template
 metadata:
   author: Álvaro Sánchez-Mariscal
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Coding (Micronaut Committer)
@@ -141,6 +141,19 @@ When finishing implementation work, report:
 7. Commands executed for verification and outcomes.
 8. Any follow-up risk (for example compatibility implications).
 
+When opening or updating a pull request, fill in the "Review declaration" lines of `.github/PULL_REQUEST_TEMPLATE.md`, one value per line, so automation can parse them:
+
+```
+AI use: agent-generated
+AI tool: <tool name, for example Claude Code>
+Risk tier: T0 | T1 | T2  (keep one)
+API or behaviour change: yes | no  (keep one)
+```
+
+- Use `agent-generated` when the agent wrote most of the change, and `assisted` when a person wrote it with agent help.
+- Pick the highest tier among the changed files: `T0` build, docs, tests and synced files; `T1` internal module code; `T2` public API, `inject`, `core-processor`, serialization, security, HTTP, or anything breaking. Check `.github/risk-tiers.yml` for the repository's T2 paths.
+- Any public API or behaviour change is `yes` and `T2`, matching the API impact classification from step 1.
+
 ## Validation Checklist
 
 - [ ] `SKILL.md` frontmatter is valid and `name` matches directory (`coding`).
@@ -153,6 +166,7 @@ When finishing implementation work, report:
 - [ ] For public API evolution without breaking changes, deprecations include clear replacement guidance and functional compatibility is preserved.
 - [ ] If breaking changes are allowed, user guide docs in `src/main/docs/guide` are updated with migration notes.
 - [ ] Verification includes tests, style checks, `check`, and `docs`.
+- [ ] The Delivery Contract covers the "Review declaration" lines of the pull request template.
 
 ## References
 

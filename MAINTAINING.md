@@ -82,6 +82,42 @@ Note that
 [Micronaut Core and Starter](https://github.com/micronaut-projects/micronaut-core/wiki/Micronaut-Core-and-Starter-Branching-Strategy)
 follow a slightly different strategy.
 
+### Risk tiers and AI disclosure
+
+Every pull request declares four values in the "Review declaration" section of the pull request template
+(`.github/PULL_REQUEST_TEMPLATE.md`). Each one sits on its own line, as `Key: value`, so that workflows and the AI
+reviewer can read it back:
+
+```
+AI use: none | assisted | agent-generated
+AI tool: <tool name, or n/a>
+Risk tier: T0 | T1 | T2
+API or behaviour change: yes | no
+```
+
+A line that still lists several options, or is missing, counts as not declared.
+
+* **AI use**: `none` when no AI tool wrote any part of the change; `assisted` when a person wrote it with AI help
+  (completion, chat, review suggestions); `agent-generated` when an agent wrote most of it and a person reviewed it.
+  `assisted` and `agent-generated` pull requests get the `ai: assisted` or `ai: agent-generated` label.
+* **AI tool**: for example Claude Code, Codex or Copilot.
+* **Risk tier**, which decides how much human review a pull request needs:
+  * `T0`: build, docs, tests and synced files. Nothing published changes.
+  * `T1`: internal module code.
+  * `T2`: public API, `inject`, `core-processor`, serialization, security, HTTP, or anything labelled `type: breaking`.
+
+  When a pull request touches files of several tiers, the highest one wins. The tier is also computed from the changed
+  paths and set as a `tier: T0`, `tier: T1` or `tier: T2` label. Repositories list their T2 paths in
+  `.github/risk-tiers.yml`, which is not synced. When the declared tier is lower than the computed one, the computed one
+  applies.
+* **API or behaviour change**: `yes` when public API or user-visible behaviour changes. `yes` means T2.
+
+Every pull request gets an AI first pass before human review, reported as the "AI first pass" check. The AI reviewer
+comments and requests changes, but it never approves: approval stays with maintainers.
+
+External contributors do not have to fill in the declaration. If it is left empty, the AI reviewer asks once and sets the
+tier itself, and the pull request is not blocked on the AI use field.
+
 ### Automated pull requests
 
 #### Dependency upgrades
@@ -132,7 +168,8 @@ template repo will get propagated automatically. The files propagated are:
 * Renovate configuration (`.github/renovate.json`).
 * Gradle wrapper.
 * `.gitignore`.
-* `ISSUE_TEMPLATE.md`, `LICENSE`, `MAINTAINING.md`, `config/HEADER` and `config/spotless.license.java`.
+* Issue templates (`.github/ISSUE_TEMPLATE/*`), the pull request template (`.github/PULL_REQUEST_TEMPLATE.md`), `LICENSE`,
+  `MAINTAINING.md`, `config/HEADER` and `config/spotless.license.java`.
 * Checkstyle's `config/checkstyle/checkstyle.xml` and `config/checkstyle/suppressions.xml`.
 
 Regarding the Gradle wrapper, the template repo checks every week if there is a new Gradle version. If there is, it will
