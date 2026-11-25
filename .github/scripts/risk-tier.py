@@ -82,6 +82,11 @@ TOOL_FOOTER_PATTERNS = (
     r"co-authored-by:.*(?:claude|anthropic|copilot|cursor|codex|openai|devin)",
     r"claude\.ai/code/session_",
     r"^\s*\U0001F916",
+    r"requested by .*project thread",
+)
+# Attribution left in HTML comments, which the other patterns do not see.
+TOOL_COMMENT_PATTERNS = (
+    r"<!--\s*claude-projects-attribution",
 )
 
 DECLARATION_FIELDS = {
@@ -192,9 +197,11 @@ def parse_declaration(body):
 
 def tool_footers(body):
     """Returns the lines of a pull request body that look like an AI tool footer or banner, ignoring HTML comments."""
+    comments = [match.group(0).strip() for match in re.finditer(r"<!--.*?-->", body or "", flags=re.DOTALL)
+                if any(re.match(pattern, match.group(0), flags=re.IGNORECASE) for pattern in TOOL_COMMENT_PATTERNS)]
     body = re.sub(r"<!--.*?-->", "", body or "", flags=re.DOTALL)
-    return [line.strip() for line in body.splitlines()
-            if any(re.search(pattern, line, flags=re.IGNORECASE) for pattern in TOOL_FOOTER_PATTERNS)]
+    return comments + [line.strip() for line in body.splitlines()
+                       if any(re.search(pattern, line, flags=re.IGNORECASE) for pattern in TOOL_FOOTER_PATTERNS)]
 
 
 def compute(paths, labels, body, config):

@@ -166,7 +166,9 @@ class ToolFooterTest(unittest.TestCase):
                      "https://claude.ai/code/session_011abc",
                      "Co-Authored-By: Claude Opus <noreply@anthropic.com>",
                      "Made with Cursor",
-                     "Generated with Copilot"):
+                     "Generated with Copilot",
+                     "_Requested by **Someone** \u00b7 [project thread](https://claude.ai/code/project/x)_",
+                     '<!-- claude-projects-attribution: {"github_login":"someone"} -->'):
             self.assertEqual(rt.tool_footers("Fixes #1\n\n" + line), [line], line)
 
     def test_ignores_declaration_and_comments(self):
