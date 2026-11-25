@@ -135,6 +135,12 @@ template repo will get propagated automatically. The files propagated are:
 * `ISSUE_TEMPLATE.md`, `LICENSE`, `MAINTAINING.md`, `config/HEADER` and `config/spotless.license.java`.
 * Checkstyle's `config/checkstyle/checkstyle.xml` and `config/checkstyle/suppressions.xml`.
 
+The same workflow also syncs issue and pull request labels. `.github/labels.json` in the template repo lists each
+shared label with its colour and description. Every run creates the missing ones and updates the colour and description
+of existing ones in each repo. It never deletes or renames labels, so repo-specific labels stay. To add or change a
+shared label, edit `.github/labels.json`; to rename one, rename it by hand in the repos first, or the sync creates a
+second label. `labels.json` itself is not copied to other repos.
+
 Regarding the Gradle wrapper, the template repo checks every week if there is a new Gradle version. If there is, it will
 upgrade the wrapper in the template repo itself, and via the files sync workflow this gets propagated to all repos. This
 way we make sure we stay up-to-date regarding Gradle versions in all repos.
