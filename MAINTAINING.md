@@ -107,9 +107,22 @@ A line that still lists several options, or is missing, counts as not declared.
   * `T2`: public API, `inject`, `core-processor`, serialization, security, HTTP, or anything labelled `type: breaking`.
 
   When a pull request touches files of several tiers, the highest one wins. The tier is also computed from the changed
-  paths and set as a `tier: T0`, `tier: T1` or `tier: T2` label. Repositories list their T2 paths in
-  `.github/risk-tiers.yml`, which is not synced. When the declared tier is lower than the computed one, the computed one
-  applies.
+  paths by the "Risk tier" workflow (`.github/workflows/risk-tier.yml`) and set as a `tier: T0`, `tier: T1` or
+  `tier: T2` label. Its `risk-tier` check fails when the declared tier is lower than the computed one. By default, tests,
+  docs, test suites, build logic and synced files are T0, `gradle/libs.versions.toml` is T1 because a version bump can
+  change published dependencies, and everything else is T1. A repository lists its T2 paths, and optionally extra T0
+  paths, in `.github/risk-tiers.yml`, which is not synced:
+
+  ```yaml
+  t2:
+    - "inject/src/main/**"
+    - "http*/src/main/**"
+  t0:
+    - "benchmarks/**"
+  ```
+
+  A file matching a `t2` glob is T2 even when the default map would make it T0, so prefer `src/main` globs over whole
+  module directories.
 * **API or behaviour change**: `yes` when public API or user-visible behaviour changes. `yes` means T2.
 
 Every pull request gets an AI first pass before human review, reported as the "AI first pass" check. The AI reviewer

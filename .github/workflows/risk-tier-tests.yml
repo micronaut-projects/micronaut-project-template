@@ -1,0 +1,26 @@
+name: Risk tier script tests
+# Runs the unit tests of .github/scripts/risk-tier.py. Only the template runs them: the test file is not synced.
+on:
+  push:
+    paths:
+      - ".github/scripts/risk-tier.py"
+      - ".github/scripts/test_risk_tier.py"
+      - ".github/PULL_REQUEST_TEMPLATE.md"
+  pull_request:
+    paths:
+      - ".github/scripts/risk-tier.py"
+      - ".github/scripts/test_risk_tier.py"
+      - ".github/PULL_REQUEST_TEMPLATE.md"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    if: github.repository == 'micronaut-projects/micronaut-project-template'
+    runs-on: ubuntu-latest
+    steps:
+      - name: "📥 Checkout repository"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: "🧪 Run the tests"
+        run: python3 .github/scripts/test_risk_tier.py -v
