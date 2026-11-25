@@ -173,6 +173,7 @@ jobs:
           done <<< "$FILES"
         env:
           FILES: |-
+            .claude/settings.json
             .clineignore
             .editorconfig
             .gitattributes
@@ -228,6 +229,7 @@ jobs:
           branch: sync-files-${{ steps.branch.outputs.branch }}
           base: ${{ steps.branch.outputs.branch }}
           add-paths: |
+            .claude/settings.json
             .clineignore
             .editorconfig
             .gitattributes
