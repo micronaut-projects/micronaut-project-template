@@ -144,12 +144,12 @@ When finishing implementation work, report:
 When opening or updating a pull request, write the description in the sections of `.github/PULL_REQUEST_TEMPLATE.md` (What changed, Why, How to test, Screenshots when visible, Checklist), keep each to a few sentences or bullets, delete sections that do not apply, and add no tool footers such as "Generated with ...". Fill in the "Review declaration" table of `.github/PULL_REQUEST_TEMPLATE.md`, keeping one value per row, so automation can parse it:
 
 ```
-| Field                   | Value           |
-|-------------------------|-----------------|
-| AI use                  | agent-generated |
-| AI tool                 | Claude Code     |
-| Risk tier               | T1              |
-| API or behaviour change | no              |
+| Field                       | Value           |
+|-----------------------------|-----------------|
+| **AI use**                  | agent-generated |
+| **AI tool**                 | Claude Code     |
+| **Risk tier**               | T1              |
+| **API or behaviour change** | no              |
 ```
 
 - Use `agent-generated` when the agent wrote most of the change, and `assisted` when a person wrote it with agent help.
