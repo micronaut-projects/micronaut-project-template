@@ -167,16 +167,18 @@ def file_tier(path, config):
 
 
 def parse_declaration(body):
-    """Reads the "Review declaration" lines of a pull request body.
+    """Reads the "Review declaration" of a pull request body.
 
-    Each field is a line starting with its key, case-insensitive. HTML comments are ignored. A value that is not one of
-    the allowed options, such as an unedited "T0 | T1 | T2", counts as not declared (None).
+    Each field is a table row "| key | value |", as in the template, or a line "key: value". Keys are case-insensitive
+    and HTML comments are ignored. A value that is not one of the allowed options, such as an unedited "T0 / T1 / T2",
+    counts as not declared (None).
     """
     body = re.sub(r"<!--.*?-->", "", body or "", flags=re.DOTALL)
     result = {name: None for name in DECLARATION_FIELDS}
     for line in body.splitlines():
         for name, (key, options) in DECLARATION_FIELDS.items():
-            match = re.match(rf"\s*(?:[-*]\s+)?\**{re.escape(key)}\**\s*:\**\s*(.*)$", line, flags=re.IGNORECASE)
+            match = (re.match(rf"\s*\|\s*\**{re.escape(key)}\**\s*\|\s*(.*?)\s*\|?\s*$", line, flags=re.IGNORECASE)
+                     or re.match(rf"\s*(?:[-*]\s+)?\**{re.escape(key)}\**\s*:\**\s*(.*)$", line, flags=re.IGNORECASE))
             if not match or result[name] is not None:
                 continue
             value = match.group(1).strip().strip("`*").strip()

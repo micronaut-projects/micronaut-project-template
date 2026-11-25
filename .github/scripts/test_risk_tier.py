@@ -94,6 +94,20 @@ class DeclarationTest(unittest.TestCase):
         self.assertEqual(rt.parse_declaration(body()), {
             "ai_use": "assisted", "ai_tool": "Claude Code", "risk_tier": "T1", "api_change": "no"})
 
+    def test_table(self):
+        text = """| Field | Value |
+|---|---|
+| AI use | agent-generated |
+| **AI tool** | Claude Code |
+| Risk tier | `T2` |
+| API or behaviour change | yes |
+"""
+        self.assertEqual(rt.parse_declaration(text), {
+            "ai_use": "agent-generated", "ai_tool": "Claude Code", "risk_tier": "T2", "api_change": "yes"})
+
+    def test_unedited_table_row(self):
+        self.assertIsNone(rt.parse_declaration("| Risk tier | T0 / T1 / T2 |")["risk_tier"])
+
     def test_case_insensitive_and_decorated(self):
         text = "ai use: Agent-Generated\n**AI tool:** Codex\n- RISK TIER: `t2`\nApi or behaviour change: YES\n"
         self.assertEqual(rt.parse_declaration(text), {
