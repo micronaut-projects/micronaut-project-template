@@ -1,0 +1,57 @@
+[
+  {
+    "name": "Micronaut branches",
+    "ruleset": {
+      "target": "branch",
+      "enforcement": "active",
+      "conditions": {
+        "ref_name": {
+          "include": ["~DEFAULT_BRANCH", "refs/heads/[0-9]*.[0-9]*.x"],
+          "exclude": []
+        }
+      },
+      "bypass_actors": [
+        {"actor_id": 1, "actor_type": "OrganizationAdmin", "bypass_mode": "always"},
+        {"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always"}
+      ],
+      "rules": [
+        {"type": "deletion"},
+        {"type": "non_fast_forward"}
+      ]
+    }
+  },
+  {
+    "name": "Micronaut required checks",
+    "only_if": {
+      "path": ".github/workflows/gradle.yml",
+      "contains": "name: \"Java CI passed\""
+    },
+    "ruleset": {
+      "target": "branch",
+      "enforcement": "active",
+      "conditions": {
+        "ref_name": {
+          "include": ["~DEFAULT_BRANCH"],
+          "exclude": []
+        }
+      },
+      "bypass_actors": [
+        {"actor_id": 1, "actor_type": "OrganizationAdmin", "bypass_mode": "always"},
+        {"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always"}
+      ],
+      "rules": [
+        {
+          "type": "required_status_checks",
+          "parameters": {
+            "strict_required_status_checks_policy": false,
+            "do_not_enforce_on_create": false,
+            "required_status_checks": [
+              {"context": "Java CI passed", "integration_id": 15368},
+              {"context": "license/cla"}
+            ]
+          }
+        }
+      ]
+    }
+  }
+]

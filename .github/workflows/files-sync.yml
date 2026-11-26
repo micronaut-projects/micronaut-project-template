@@ -256,6 +256,13 @@ jobs:
             config/spotless.license.java
             config/checkstyle/checkstyle.xml
             config/checkstyle/suppressions.xml
+      # After the pull request, so that a failure here never holds back the files sync. Needs admin on the repository.
+      - name: Sync rulesets
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          REPO: micronaut-projects/micronaut-${{ matrix.repo }}
+        run: source/.github/scripts/sync-rulesets.sh "$REPO" source/.github/rulesets.json
+        shell: bash
       - name: Wait for CI and merge if green
         if: steps.cpr.outputs.pull-request-number != ''
         shell: bash
