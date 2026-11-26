@@ -213,12 +213,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           REPO: micronaut-projects/micronaut-${{ matrix.repo }}
-        run: |
-          # Creates or updates the shared labels. Labels that only exist in the target repo are kept.
-          jq -r '.[] | [.name, .color, .description] | @tsv' source/.github/labels.json |
-            while IFS=$'\t' read -r name color description; do
-              gh label create "$name" --repo "$REPO" --color "$color" --description "$description" --force
-            done
+        run: source/.github/scripts/sync-labels.sh "$REPO" source/.github/labels.json
         shell: bash
       - name: Sleep for 3 minutes to avoid rate limiting
         run: sleep 180s

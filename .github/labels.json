@@ -7,12 +7,18 @@
   {
     "name": "closed: duplicate",
     "color": "cfd3d7",
-    "description": "This issue or pull request already exists"
+    "description": "This issue or pull request already exists",
+    "aliases": [
+      "duplicate"
+    ]
   },
   {
     "name": "closed: invalid",
     "color": "e4e669",
-    "description": "The issue doesn't seem right"
+    "description": "The issue doesn't seem right",
+    "aliases": [
+      "invalid"
+    ]
   },
   {
     "name": "closed: notabug",
@@ -32,7 +38,10 @@
   {
     "name": "closed: won't fix",
     "color": "306da3",
-    "description": "The issue will not be worked on"
+    "description": "The issue will not be worked on",
+    "aliases": [
+      "wontfix"
+    ]
   },
   {
     "name": "help wanted",
@@ -42,7 +51,10 @@
   {
     "name": "info: good first issue",
     "color": "7057ff",
-    "description": "Good for newcomers"
+    "description": "Good for newcomers",
+    "aliases": [
+      "good first issue"
+    ]
   },
   {
     "name": "info: workaround available",
@@ -142,12 +154,18 @@
   {
     "name": "type: bug",
     "color": "d73a4a",
-    "description": "Something isn't working"
+    "description": "Something isn't working",
+    "aliases": [
+      "bug"
+    ]
   },
   {
     "name": "type: dependency-upgrade",
     "color": "727ac9",
-    "description": "Upgrade a dependency"
+    "description": "Upgrade a dependency",
+    "aliases": [
+      "dependencies"
+    ]
   },
   {
     "name": "type: deprecated",
@@ -157,12 +175,18 @@
   {
     "name": "type: docs",
     "color": "769100",
-    "description": ""
+    "description": "",
+    "aliases": [
+      "documentation"
+    ]
   },
   {
     "name": "type: enhancement",
     "color": "a2eeef",
-    "description": "New feature or request"
+    "description": "New feature or request",
+    "aliases": [
+      "enhancement"
+    ]
   },
   {
     "name": "type: improvement",
@@ -172,7 +196,10 @@
   {
     "name": "type: question",
     "color": "db7ac3",
-    "description": "Further information is requested"
+    "description": "Further information is requested",
+    "aliases": [
+      "question"
+    ]
   },
   {
     "name": "type: regression",

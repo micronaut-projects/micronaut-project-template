@@ -137,9 +137,11 @@ template repo will get propagated automatically. The files propagated are:
 
 The same workflow also syncs issue and pull request labels. `.github/labels.json` in the template repo lists each
 shared label with its colour and description. Every run creates the missing ones and updates the colour and description
-of existing ones in each repo. It never deletes or renames labels, so repo-specific labels stay. To add or change a
-shared label, edit `.github/labels.json`; to rename one, rename it by hand in the repos first, or the sync creates a
-second label. `labels.json` itself is not copied to other repos.
+of existing ones in each repo. A label can list `aliases`, such as GitHub's default `bug` for `type: bug`: an alias
+found in a repo is renamed to the shared label, or, when both exist, its issues and pull requests get the shared label
+and the alias is deleted. Other repo-specific labels are left alone. To rename a shared label, change its `name` and
+add the old name to its `aliases`. `labels.json` itself is not copied to other repos; the sync runs
+`.github/scripts/sync-labels.sh`, which takes `--dry-run`.
 
 Regarding the Gradle wrapper, the template repo checks every week if there is a new Gradle version. If there is, it will
 upgrade the wrapper in the template repo itself, and via the files sync workflow this gets propagated to all repos. This
