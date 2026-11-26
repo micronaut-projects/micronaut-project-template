@@ -218,7 +218,8 @@ class JevTest(unittest.TestCase):
             def read(self):
                 return json.dumps({"model": "jev-1.14.0", "answers": {"tier": {
                     "type": "choice", "choice": "T1", "probabilities": {"T0": 0.1, "T1": 0.8, "T2": 0.1},
-                    "confidence": 0.8}}}).encode()
+                    "confidence": 0.8}, "public_api": {"type": "noul", "noul": 0.1},
+                    "breaking": {"type": "noul", "noul": 0.05}}}).encode()
 
         def opener(request, timeout):
             sent["url"] = request.full_url
@@ -232,6 +233,47 @@ class JevTest(unittest.TestCase):
         self.assertEqual(sent["auth"], "Bearer key")
         self.assertEqual(sent["body"]["questions"]["tier"]["type"], "choice")
         self.assertEqual(sorted(sent["body"]["questions"]["tier"]["criteria"]), list(rt.TIERS))
+        self.assertEqual(sent["body"]["questions"]["public_api"]["type"], "noul")
+        self.assertEqual((answer["public_api"], answer["breaking"]), (0.1, 0.05))
+
+    def test_public_api_answer_raises_to_t2(self):
+        answer = dict(jev("T1", t1=0.9, t0=0.1), public_api=0.8, breaking=0.1)
+        result = rt.compute(["a/src/main/A.java"], set(), "", EMPTY, answer)
+        self.assertEqual(result["tier"], "T2")
+        self.assertIn("changes public API", result["reasons"][-1])
+
+    def test_breaking_answer_raises_to_t2(self):
+        answer = dict(jev("T0", t0=1.0), public_api=0.1, breaking=0.6)
+        self.assertEqual(rt.compute(["a/src/main/A.java"], set(), "", EMPTY, answer)["tier"], "T2")
+
+    def test_unlikely_api_change_keeps_tier(self):
+        answer = dict(jev("T1", t1=0.9, t0=0.1), public_api=0.3, breaking=0.2)
+        self.assertEqual(rt.compute(["a/src/main/A.java"], set(), "", EMPTY, answer)["tier"], "T1")
+
+    def test_diff_keeps_main_sources_and_changed_lines(self):
+        files = [
+            {"filename": "a/src/main/java/A.java", "status": "modified", "additions": 1, "deletions": 1,
+             "patch": "@@ -1,3 +1,3 @@\n context\n-public void a()\n+public void b()"},
+            {"filename": "a/src/test/java/ATest.java", "status": "modified", "additions": 1, "deletions": 0,
+             "patch": "@@ -1 +1,2 @@\n+test"},
+            {"filename": "inject/src/main/java/B.java", "status": "added", "additions": 50, "deletions": 0,
+             "patch": "@@ -0,0 +1 @@\n+class B {}"},
+        ]
+        diff, omitted = rt.main_source_diff(files, CORE)
+        self.assertEqual(omitted, 0)
+        self.assertNotIn("ATest", diff)
+        self.assertNotIn("context", diff)
+        self.assertLess(diff.index("inject/src/main/java/B.java"), diff.index("a/src/main/java/A.java"))
+        self.assertIn("+public void b()", diff)
+
+    def test_diff_is_bounded(self):
+        big = "\n".join("+" + "x" * 99 for _ in range(rt.JEV_MAX_DIFF // 100 + 10))
+        files = [{"filename": "a/src/main/A.java", "patch": big}, {"filename": "a/src/main/B.java", "patch": "+b"}]
+        diff, omitted = rt.main_source_diff(files, EMPTY)
+        self.assertEqual(omitted, 1)
+        self.assertIn("B.java", diff)
+        state = rt.jev_state("t", "", set(), files, EMPTY)
+        self.assertIn("main_source_diff_note", state)
 
     def test_retries_rate_limit(self):
         import io
@@ -246,7 +288,8 @@ class JevTest(unittest.TestCase):
                 return False
 
             def read(self):
-                return b'{"answers": {"tier": {"choice": "T0"}}}'
+                return (b'{"answers": {"tier": {"choice": "T0"}, "public_api": {"noul": 0.0},'
+                        b' "breaking": {"noul": 0.0}}}')
 
         def opener(request, timeout):
             calls.append(1)

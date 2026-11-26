@@ -114,9 +114,13 @@ A row that still lists several options, or is missing, counts as not declared.
 
   The "Risk tier" workflow (`.github/workflows/risk-tier.yml`) classifies every pull request with
   [TypeSafe's Jev model](https://docs.typesafe.ai) and sets a `risk-tier: T0`, `risk-tier: T1` or `risk-tier: T2`
-  label. Jev gets the title, description, labels, changed file names with their line counts, and the repository's T2
-  areas, never the code, and returns a probability per tier. The workflow takes the highest tier with at least a 25%
-  probability, so an unsure answer rounds up. Its `risk-tier` check fails when the declared tier is lower than the
+  label. Jev gets the title, description, labels, changed file names with their line counts, the changed lines of
+  main source files (T2 areas first, up to about 15k tokens; tests, docs and build files are left out) and the
+  repository's T2 areas, and returns a probability per tier. The workflow takes the highest tier with at least a 25%
+  probability, so an unsure answer rounds up. Jev also answers whether the diff changes public API (public or
+  protected members of main sources, except `@Internal` and `internal` packages) and whether it breaks users. Either
+  at 50% or more makes the pull request T2, and these answers never lower a tier. They are an early warning: the
+  build's binary compatibility check stays the definitive test for binary breaks. Its `risk-tier` check fails when the declared tier is lower than the
   classified one, and when Jev cannot be reached or the `TYPESAFE_API_KEY` organisation secret is missing: it never
   guesses a tier. The workflow summary names the model version and also shows the tier that path rules alone give
   (tests, docs, build logic and synced files T0, everything else T1).

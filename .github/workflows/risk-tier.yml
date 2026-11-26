@@ -11,8 +11,8 @@ name: Risk tier
 # tier declared in the pull request description is lower than the classified one, or when Jev cannot be reached. The
 # tiers are described in MAINTAINING.md, under "Risk tiers and AI disclosure".
 #
-# Jev's API key is the TYPESAFE_API_KEY organisation secret. Jev receives the pull request title, description, labels
-# and changed file names with line counts, never the code.
+# Jev's API key is the TYPESAFE_API_KEY organisation secret. Jev receives the pull request title, description, labels,
+# changed file names with line counts, and the changed lines of main source files, read through the GitHub API.
 #
 # It runs on pull_request_target so that it can label pull requests from forks. It must never check out or run
 # pull request code: the checkout below is the base branch, and the changed paths come from the GitHub API.
