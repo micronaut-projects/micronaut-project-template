@@ -53,5 +53,38 @@
         }
       ]
     }
+  },
+  {
+    "name": "Micronaut review policy",
+    "only_if": {
+      "path": ".github/workflows/risk-tier.yml",
+      "contains": "name: review-policy"
+    },
+    "ruleset": {
+      "target": "branch",
+      "enforcement": "active",
+      "conditions": {
+        "ref_name": {
+          "include": ["~DEFAULT_BRANCH"],
+          "exclude": []
+        }
+      },
+      "bypass_actors": [
+        {"actor_id": 1, "actor_type": "OrganizationAdmin", "bypass_mode": "always"},
+        {"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always"}
+      ],
+      "rules": [
+        {
+          "type": "required_status_checks",
+          "parameters": {
+            "strict_required_status_checks_policy": false,
+            "do_not_enforce_on_create": false,
+            "required_status_checks": [
+              {"context": "review-policy", "integration_id": 15368}
+            ]
+          }
+        }
+      ]
+    }
   }
 ]

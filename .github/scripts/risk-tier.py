@@ -47,6 +47,12 @@ changed files and the body through the GitHub API, and the rules from the base b
 reads the Jev API key from ``TYPESAFE_API_KEY``, and fails when it is missing or Jev does not answer, instead of
 guessing a tier.
 
+The ``review`` command is the review-policy check, run after the labels are set and again on each review: T0 needs
+no person's review, T1 one approval from a maintainer, and T2 one approval plus, for files that CODEOWNERS assigns,
+one of their owners. With ``--request`` it asks the maintainer with the fewest open review requests to review a T1 or
+T2 pull request that nobody has been asked to review yet. Both apply only where ``[review] enforce`` is true;
+elsewhere the check reports what it would need and passes.
+
 Only the Python standard library (3.11 or later, for tomllib) is used.
 """
 import argparse
@@ -71,22 +77,6 @@ AI_LABELS = {use: f"ai-use: {use}" for use in AI_USES}
 # The login GITHUB_TOKEN acts as. Labels added by anyone else are reclassifications the script keeps.
 WORKFLOW_ACTOR = "github-actions[bot]"
 
-# Footers and banners that AI tools add to pull request descriptions. The review declaration already records AI use,
-# so the template asks for none of them, whichever agent or harness wrote the pull request.
-TOOL_FOOTER_PATTERNS = (
-    # Each pattern matches a whole footer line, so prose that mentions a footer does not match.
-    r"^[\s_*>]*(?:\U0001F916\s*)?generated (?:with|by) \[?(?:claude|codex|copilot|cursor|chatgpt|gemini|devin|openai|anthropic)",
-    r"^[\s_*>]*made with \[?cursor",
-    r"^\s*co-authored-by:.*(?:claude|anthropic|copilot|cursor|codex|openai|devin)",
-    r"^\s*<?https://claude\.ai/code/session_\S*>?\s*$",
-    r"^\s*\U0001F916",
-    r"^[\s_*>]*requested by .*project thread",
-)
-# Attribution left in HTML comments, which the other patterns do not see.
-TOOL_COMMENT_PATTERNS = (
-    r"<!--\s*claude-projects-attribution",
-)
-
 JEV_URL = "https://api.typesafe.ai/v1/systemone"
 JEV_MAX_BODY = 6000
 JEV_MAX_FILES = 300
@@ -104,6 +94,7 @@ CLASSIFIER_PATHS = [GLOBAL_RULES, REPOSITORY_RULES, ".github/scripts/risk-tier.p
 # What CI, releases and the build run: a change here can reach secrets or published artifacts without touching main
 # sources. T2 in every repository too, including updates by bots such as Renovate.
 SUPPLY_CHAIN_PATHS = [".github/workflows/**", ".github/actions/**", ".github/scripts/**", ".github/CODEOWNERS",
+                      "/CODEOWNERS", "docs/CODEOWNERS",
                       "buildSrc/**", "gradle/wrapper/**", "gradlew", "gradlew.bat", "settings.gradle",
                       "settings.gradle.kts"]
 PROTECTED_PATHS = CLASSIFIER_PATHS + SUPPLY_CHAIN_PATHS
@@ -283,15 +274,6 @@ def parse_declaration(body):
     return result
 
 
-def tool_footers(body):
-    """Returns the lines of a pull request body that look like an AI tool footer or banner, ignoring HTML comments."""
-    comments = [match.group(0).strip() for match in re.finditer(r"<!--.*?-->", body or "", flags=re.DOTALL)
-                if any(re.match(pattern, match.group(0), flags=re.IGNORECASE) for pattern in TOOL_COMMENT_PATTERNS)]
-    body = re.sub(r"<!--.*?-->", "", body or "", flags=re.DOTALL)
-    return comments + [line.strip() for line in body.splitlines()
-                       if any(re.search(pattern, line, flags=re.IGNORECASE) for pattern in TOOL_FOOTER_PATTERNS)]
-
-
 def bot_author(user, rules):
     """The login of a bot author, or None for a person. GitHub Apps such as renovate[bot] are bots, and so are the
     accounts listed in [bots] logins, such as micronaut-build."""
@@ -457,7 +439,6 @@ def compute(paths, labels, body, rules, jev=None, fixed=None):
         "reasons": reasons,
         "declaration": declaration,
         "override": None,
-        "footers": tool_footers(body),
         "declared_too_low": declaration["risk_tier"] is not None
         and TIERS.index(declaration["risk_tier"]) < TIERS.index(tier),
     }
@@ -818,9 +799,6 @@ def summary(result, warnings):
             f"Set the Risk tier in the review declaration to {result['tier']}.",
             "",
         ]
-    if result["footers"]:
-        lines += ["The description has AI tool footers or banners. Remove them: the review declaration already records "
-                  "AI use.", ""] + [f"- `{line}`" for line in result["footers"]] + [""]
     for tier in reversed(TIERS):
         files = result["files"][tier]
         if files:
@@ -883,15 +861,197 @@ def run_event(args):
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary_file:
             summary_file.write(text + "\n")
     failed = False
-    if result["footers"]:
-        print("::error title=AI tool footer in the description::Remove the tool footers or banners from the pull request "
-              "description. The review declaration already records AI use.")
-        failed = True
     if result["declared_too_low"]:
         failed = True
         print(f"::error title=Declared risk tier too low::The pull request declares {result['declaration']['risk_tier']}"
               f", but it is classified {result['tier']}. Update the Risk tier in the review declaration.")
     return 1 if failed else 0
+
+
+CODEOWNERS_PATHS = (".github/CODEOWNERS", "CODEOWNERS", "docs/CODEOWNERS")
+# Review states that count, the last one of each reviewer wins. A dismissed review counts as none.
+REVIEW_STATES = ("APPROVED", "CHANGES_REQUESTED", "DISMISSED")
+APPROVING_PERMISSIONS = {"admin", "maintain", "write"}
+
+
+def review_rules(rules):
+    """The [review] table: the maintainers rotation, and whether the review-policy check enforces the policy."""
+    review = rules.get("review", {})
+    maintainers = review.get("maintainers", [])
+    if not isinstance(maintainers, list) or not all(isinstance(login, str) for login in maintainers):
+        raise ValueError("Invalid risk tier rules: [review] maintainers must be a list of logins")
+    if not isinstance(review.get("enforce", False), bool):
+        raise ValueError("Invalid risk tier rules: [review] enforce must be true or false")
+    return {"maintainers": [login.lower() for login in maintainers], "enforce": review.get("enforce", False)}
+
+
+def parse_codeowners(text):
+    """The rules of a CODEOWNERS file as (pattern, owners) pairs, in file order. GitHub applies the last matching
+    pattern, and a pattern without owners leaves its files unowned."""
+    entries = []
+    for line in (text or "").splitlines():
+        line = line.split("#", 1)[0].strip()
+        if not line:
+            continue
+        pattern, *owners = line.split()
+        entries.append((pattern, [owner.lstrip("@").lower() for owner in owners if owner.startswith("@")]))
+    return entries
+
+
+def owners_of(path, entries):
+    """The owners of a file: those of the last matching CODEOWNERS pattern, or [] when none matches. As in gitignore,
+    a pattern also matches everything below a directory of that name."""
+    owners = []
+    for pattern, pattern_owners in entries:
+        if glob_to_regex(pattern).match(path) or glob_to_regex(pattern.rstrip("/") + "/**").match(path):
+            owners = pattern_owners
+    return owners
+
+
+def latest_reviews(reviews, author):
+    """The last counting review state of each person, leaving out the author and bots. Comments do not count."""
+    states = {}
+    for review in reviews:
+        user = review.get("user") or {}
+        login = (user.get("login") or "").lower()
+        if (not login or login == (author or "").lower() or user.get("type") == "Bot" or login.endswith("[bot]")
+                or review.get("state") not in REVIEW_STATES):
+            continue
+        states[login] = review["state"]
+    return {login: state for login, state in states.items() if state != "DISMISSED"}
+
+
+def review_verdict(tier, paths, codeowners, approvers, blockers):
+    """Whether a pull request has the reviews its tier needs, and why.
+
+    T0 needs no person: the AI first pass is enough. T1 needs one approval from a maintainer. T2 needs one approval,
+    and for each changed file that CODEOWNERS assigns, an approval from one of its owners. A change request from a
+    maintainer blocks every tier until it is dismissed or followed by an approval. Team owners (org/team) cannot be
+    resolved with the workflow's token, so any maintainer's approval covers their files."""
+    reasons = []
+    if blockers:
+        return False, [f"changes requested by {', '.join(sorted(blockers))}"]
+    if tier is None:
+        return False, ["no risk tier yet: the risk-tier check labels the pull request first"]
+    if tier == "T0":
+        return True, ["T0 needs no person's review"]
+    if not approvers:
+        return False, [f"{tier} needs one approval from a maintainer"]
+    reasons.append(f"approved by {', '.join(sorted(approvers))}")
+    if tier == "T2" and codeowners:
+        missing = {}
+        for path in paths:
+            owners = owners_of(path, codeowners)
+            users = [owner for owner in owners if "/" not in owner]
+            if users and len(users) == len(owners) and not set(users) & approvers:
+                missing.setdefault(tuple(users), []).append(path)
+        for owners, files in sorted(missing.items()):
+            reasons.append(f"{len(files)} file(s) owned by {' or '.join(owners)} need one of them to approve, such as "
+                           f"`{files[0]}`")
+        if missing:
+            return False, reasons
+    return True, reasons
+
+
+def pick_reviewer(candidates, load, number):
+    """The maintainer with the fewest open review requests; ties are broken by the pull request number, so that they
+    rotate."""
+    if not candidates:
+        return None
+    candidates = sorted(candidates)
+    lowest = min(load.get(login, 0) for login in candidates)
+    tied = [login for login in candidates if load.get(login, 0) == lowest]
+    return tied[number % len(tied)]
+
+
+def unowned_t2_files(paths, rules, codeowners):
+    """Changed files in the repository's own T2 areas that CODEOWNERS gives no owner, when the repository has one."""
+    repository_t2 = rules["tiers"]["T2"].get("paths", [])
+    return [path for path in paths if matches_any(path, repository_t2) and not owners_of(path, codeowners)]
+
+
+def read_codeowners(root="."):
+    for relative in CODEOWNERS_PATHS:
+        path = os.path.join(root, relative)
+        if os.path.isfile(path):
+            with open(path, encoding="utf-8") as codeowners_file:
+                return relative, parse_codeowners(codeowners_file.read())
+    return None, []
+
+
+def run_review(args):
+    """The review-policy check: whether the pull request has the reviews its risk tier needs, and, when the policy is
+    enforced, a review request to the maintainers rotation if nobody has been asked yet."""
+    with open(os.environ["GITHUB_EVENT_PATH"], encoding="utf-8") as event_file:
+        event = json.load(event_file)
+    number = event["pull_request"]["number"]
+    github = GitHub(os.environ.get("GITHUB_TOKEN"), os.environ["GITHUB_REPOSITORY"],
+                    os.environ.get("GITHUB_API_URL", "https://api.github.com"))
+    rules = load_rules(args.rules, args.repository_rules)
+    policy = review_rules(rules)
+    # The event's copy is stale: the risk-tier job of the same run may just have labelled the pull request.
+    pull_request, _ = github.request("GET", f"pulls/{number}")
+    author = ((pull_request.get("user") or {}).get("login") or "").lower()
+    labels = {label["name"] for label in pull_request.get("labels", [])}
+    tiers = [tier for tier, name in TIER_LABELS.items() if name in labels]
+    tier = max(tiers, key=TIERS.index) if tiers else None
+    paths = changed_paths(github.changed_files(number))
+    codeowners_file, codeowners = read_codeowners()
+
+    def may_approve(login):
+        return login in policy["maintainers"] or github.permission(login) in APPROVING_PERMISSIONS
+
+    states = latest_reviews(github.paginate(f"pulls/{number}/reviews"), author)
+    approvers = {login for login, state in states.items() if state == "APPROVED" and may_approve(login)}
+    blockers = {login for login, state in states.items() if state == "CHANGES_REQUESTED" and may_approve(login)}
+    passed, reasons = review_verdict(tier, paths, codeowners, approvers, blockers)
+
+    notes = []
+    requested = [user["login"] for user in pull_request.get("requested_reviewers", [])]
+    teams = [team["slug"] for team in pull_request.get("requested_teams", [])]
+    if (policy["enforce"] and args.request and tier in ("T1", "T2") and not pull_request.get("draft")
+            and not requested and not teams and not approvers and not blockers):
+        candidates = [login for login in policy["maintainers"] if login != author]
+        owner = os.environ["GITHUB_REPOSITORY"].split("/")[0]
+        load = {}
+        for login in candidates:
+            try:
+                found, _ = github.request("GET", f"{github.api_url}/search/issues?q=" + urllib.parse.quote(
+                    f"is:pr is:open review-requested:{login} org:{owner}") + "&per_page=1")
+                load[login] = found.get("total_count", 0)
+            except urllib.error.URLError as error:
+                print(f"::warning::Could not count the open review requests of {login}: {error}")
+        # A maintainer whose load could not be read is only picked when nobody else's could be.
+        counted = [login for login in candidates if login in load] or candidates
+        reviewer = pick_reviewer(counted, load, number)
+        if reviewer:
+            try:
+                github.request("POST", f"pulls/{number}/requested_reviewers", {"reviewers": [reviewer]})
+                notes.append(f"Requested a review from {reviewer}, the maintainer with the fewest open review "
+                             f"requests.")
+            except urllib.error.URLError as error:
+                print(f"::warning::Could not request a review from {reviewer}: {error}")
+    if codeowners and tier == "T2":
+        unowned = unowned_t2_files(paths, rules, codeowners)
+        if unowned:
+            notes.append(f"{len(unowned)} changed file(s) in this repository's T2 areas have no owner in "
+                         f"`{codeowners_file}`, such as `{unowned[0]}`. Add them to it, or narrow the T2 paths.")
+
+    lines = [f"## Review policy: {'met' if passed else 'not met yet'}", "",
+             f"Risk tier: {tier or 'not labelled yet'}. " + "; ".join(reasons) + ".", ""]
+    if not policy["enforce"]:
+        lines += ["The policy is not enforced in this repository yet (`[review] enforce`), so this check passes "
+                  "either way.", ""]
+    lines += [f"> [!NOTE]\n> {note}\n" for note in notes]
+    text = "\n".join(lines)
+    print(text)
+    if os.environ.get("GITHUB_STEP_SUMMARY"):
+        with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary_file:
+            summary_file.write(text + "\n")
+    if not passed and policy["enforce"]:
+        print(f"::error title=Review policy not met::{'; '.join(reasons)}")
+        return 1
+    return 0
 
 
 def run_replay(args):
@@ -936,8 +1096,12 @@ def main(argv=None):
     replay.add_argument("--until", help="last merge date, YYYY-MM-DD")
     replay.add_argument("--token", help="GitHub token, defaults to GITHUB_TOKEN or GH_TOKEN")
     replay.add_argument("--rules-only", action="store_true", help="use the path rules instead of Jev")
+    review = sub.add_parser("review", help="check that the pull request of the current event has the reviews its tier "
+                                           "needs")
+    review.add_argument("--request", action="store_true",
+                        help="request a review from the maintainers rotation when nobody has been asked yet")
     args = parser.parse_args(argv)
-    return run_event(args) if args.command == "event" else run_replay(args)
+    return {"event": run_event, "replay": run_replay, "review": run_review}[args.command](args)
 
 
 if __name__ == "__main__":
