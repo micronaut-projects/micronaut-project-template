@@ -18,6 +18,14 @@ probability reaches ``round_up_at``, so an unsure answer rounds up. Two yes/no q
 the change touches public API and whether it breaks users: either at ``diff_t2_at`` or more makes the pull request T2.
 Those answers only ever raise the tier, since the diff is text its author controls.
 
+Bots never go to Jev. A Renovate pull request gets the tier of the update it makes, read from the table in its
+description (by default patch T0, minor T1, major T2, and the highest one when it groups several), and any other bot,
+such as micronaut-build's files sync, gets the tier of the path rules alone. Both are listed in ``[bots]``.
+
+Jev is asked once per run, with all three questions in one request, and only when something it reads may have
+changed: on a label change, a reopen, ready for review, or an edit that leaves the title and description as they
+were, the tier this workflow labelled last time is kept.
+
 Some facts always make a pull request T2, whatever Jev answers: a changed file that matches a T2 path, a T2 label such
 as ``type: breaking``, or "API or behaviour change: yes" in the pull request body. The other path rules only give Jev a
 hint per file, and ``replay --rules-only`` uses them alone, to compare.
@@ -166,6 +174,13 @@ def validate_rules(rules):
             errors.append(f"[jev] {key} must be a number above 0 and at most 1")
     if not isinstance(rules.get("public_api", {}).get("description"), str):
         errors.append("[public_api] needs a description")
+    bots = rules.get("bots", {})
+    for key, logins in (("logins", bots.get("logins", [])), ("renovate.logins", bots.get("renovate", {}).get("logins", []))):
+        if not isinstance(logins, list) or not all(isinstance(login, str) for login in logins):
+            errors.append(f"[bots] {key} must be a list of logins")
+    for update, tier in bots.get("renovate", {}).get("update_tiers", {}).items():
+        if tier not in TIERS:
+            errors.append(f"[bots.renovate] update_tiers.{update} must be one of {', '.join(TIERS)}")
     if errors:
         raise ValueError("Invalid risk tier rules: " + "; ".join(errors))
     return rules
@@ -255,10 +270,102 @@ def tool_footers(body):
                        if any(re.search(pattern, line, flags=re.IGNORECASE) for pattern in TOOL_FOOTER_PATTERNS)]
 
 
-def compute(paths, labels, body, rules, jev=None):
+def bot_author(user, rules):
+    """The login of a bot author, or None for a person. GitHub Apps such as renovate[bot] are bots, and so are the
+    accounts listed in [bots] logins, such as micronaut-build."""
+    login = (user or {}).get("login", "")
+    bots = rules.get("bots", {})
+    if ((user or {}).get("type") == "Bot" or login.endswith("[bot]") or login in bots.get("logins", [])
+            or login in bots.get("renovate", {}).get("logins", [])):
+        return login
+    return None
+
+
+HEX_DIGEST = re.compile(r"[0-9a-f]{7,64}")
+
+
+def version_update(old, new):
+    """Renovate's update type for a version change it did not name: major, minor or patch, digest for commit hashes,
+    or None when the versions have no numbers to compare."""
+    old, new = old.strip().lstrip("vV"), new.strip().lstrip("vV")
+    if HEX_DIGEST.fullmatch(old) and HEX_DIGEST.fullmatch(new):
+        return "digest"
+    old_numbers, new_numbers = re.findall(r"\d+", old), re.findall(r"\d+", new)
+    if not old_numbers or not new_numbers:
+        return None
+    for position, update in enumerate(("major", "minor")):
+        if int((old_numbers + ["0", "0"])[position]) != int((new_numbers + ["0", "0"])[position]):
+            return update
+    return "patch"
+
+
+def renovate_updates(body):
+    """The update type of each row of the update table at the top of a Renovate pull request description. Renovate
+    names it in an "Update" column when it shows one, and otherwise it is read from the "Change" column. An update
+    whose type cannot be read is returned as None."""
+    updates, columns = [], None
+    for line in (body or "").splitlines():
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")] if line.strip().startswith("|") else None
+        if cells is None:
+            if columns is not None and updates:
+                break
+            continue
+        if columns is None:
+            if "Change" in cells:
+                columns = cells
+            continue
+        if all(set(cell) <= set("-: ") for cell in cells):
+            continue
+        row = dict(zip(columns, cells))
+        update = row.get("Update", "").strip("` ") or None
+        if update is None:
+            change = re.match(r"`([^`]+)`\s*(?:→|->)\s*`([^`]+)`", row.get("Change", ""))
+            update = version_update(*change.groups()) if change else None
+        updates.append(update)
+    return updates
+
+
+def renovate_tier(body, rules):
+    """The tier of a Renovate pull request from the update types it makes, the highest one of them, and why. Update
+    types without a tier in [bots.renovate] update_tiers, or that cannot be read, are T2. None when the description
+    has no update table."""
+    updates = renovate_updates(body)
+    if not updates:
+        return None
+    tiers = rules.get("bots", {}).get("renovate", {}).get("update_tiers", {})
+    tier = max((tiers.get(update, "T2") for update in updates), key=TIERS.index)
+    named = sorted({update or "unreadable" for update in updates})
+    return tier, f"Renovate {'update' if len(updates) == 1 else f'{len(updates)} updates'}: {', '.join(named)}"
+
+
+def classify(pull_request, labels, files, rules, use_jev=True, previous=None):
+    """Classifies a pull request: Renovate's by the update type it makes, other bots' by the path rules alone, and
+    everyone else's with Jev, unless use_jev is false. ``previous`` is the tier this workflow gave the pull request
+    last time, when nothing Jev reads changed since: it is kept instead of asking Jev again."""
+    body = pull_request.get("body")
+    bot = bot_author(pull_request.get("user"), rules)
+    if bot:
+        renovate = (renovate_tier(body, rules)
+                    if bot in rules.get("bots", {}).get("renovate", {}).get("logins", []) else None)
+        result = compute(changed_paths(files), labels, body, rules, fixed=renovate)
+        result["bot"] = bot
+        return result
+    if previous:
+        return compute(changed_paths(files), labels, body, rules,
+                       fixed=(previous, f"kept {previous} from the last classification, since nothing Jev reads changed"))
+    answer = None
+    if use_jev:
+        answer = ask_jev(jev_state(pull_request.get("title"), body, labels, files, rules),
+                         os.environ.get("TYPESAFE_API_KEY"), rules)
+    return compute(changed_paths(files), labels, body, rules, answer)
+
+
+def compute(paths, labels, body, rules, jev=None, fixed=None):
     """Returns the tier, the declaration, and the reasons for the tier.
 
-    ``jev`` is Jev's answer (see ask_jev), or None to use the path rules alone (``replay --rules-only``).
+    ``jev`` is Jev's answer (see ask_jev), ``fixed`` a tier and its reason decided without Jev (a Renovate update, see
+    renovate_tier, or the last classification when nothing Jev reads changed), or both None to use the path rules
+    alone (other bots, and ``replay --rules-only``).
     """
     declaration = parse_declaration(body)
     per_tier = {tier: [] for tier in TIERS}
@@ -266,7 +373,10 @@ def compute(paths, labels, body, rules, jev=None):
         per_tier[file_tier(path, rules)].append(path)
     rules_tier = max((t for t in TIERS if per_tier[t]), default="T0", key=TIERS.index)
     reasons = []
-    if jev is None:
+    if fixed is not None:
+        tier, reason = fixed
+        reasons.append(reason)
+    elif jev is None:
         tier = rules_tier
         if per_tier[tier]:
             reasons.append(f"{len(per_tier[tier])} changed file(s) are {tier} by the path rules")
@@ -279,10 +389,10 @@ def compute(paths, labels, body, rules, jev=None):
             if probability is not None and probability >= rules["jev"]["diff_t2_at"] and tier != "T2":
                 tier = "T2"
                 reasons.append(f"Jev reads the diff as one that {what} ({probability:.0%})")
-        t2_files = [path for path in paths if matches_any(path, tier_paths(rules, "T2"))]
-        if t2_files and tier != "T2":
-            tier = "T2"
-            reasons.append(f"{len(t2_files)} changed file(s) are in the repository's T2 areas")
+    t2_files = [path for path in paths if matches_any(path, tier_paths(rules, "T2"))]
+    if t2_files and tier != "T2":
+        tier = "T2"
+        reasons.append(f"{len(t2_files)} changed file(s) are in the repository's T2 areas")
     t2_labels = sorted(set(rules["tiers"]["T2"].get("labels", [])) & set(labels))
     if t2_labels and tier != "T2":
         tier = "T2"
@@ -295,6 +405,7 @@ def compute(paths, labels, body, rules, jev=None):
         "rules_tier": rules_tier,
         "sources": rules.get("sources"),
         "jev": jev,
+        "bot": None,
         "files": per_tier,
         "reasons": reasons,
         "declaration": declaration,
@@ -418,6 +529,34 @@ def ask_jev(state, api_key, rules, url=JEV_URL, opener=urllib.request.urlopen):
     return answer
 
 
+# Events that change nothing Jev reads (the title, description, labels other than T2 ones, and the diff).
+UNCHANGED_INPUT_ACTIONS = {"labeled", "unlabeled", "ready_for_review", "reopened"}
+
+
+def input_unchanged(event, rules):
+    """Whether this pull request event leaves everything Jev reads as it was. An ``edited`` event that changes only
+    the base branch does; one that changes the title or the description does not, and neither does adding or removing
+    a T2 label such as ``type: breaking``, since the last tier may rest on it."""
+    action = event.get("action")
+    if action == "edited":
+        return not {"title", "body"} & set(event.get("changes") or {})
+    if action in ("labeled", "unlabeled"):
+        return (event.get("label") or {}).get("name") not in rules["tiers"]["T2"].get("labels", [])
+    return action in UNCHANGED_INPUT_ACTIONS
+
+
+def workflow_tier(events, labels, workflow_actor=WORKFLOW_ACTOR):
+    """The tier label this workflow itself put on the pull request and that is still there, or None."""
+    added = {}
+    for event in events:
+        if event.get("event") == "labeled" and event.get("label"):
+            added[event["label"]["name"]] = (event.get("actor") or {}).get("login")
+    for tier, name in TIER_LABELS.items():
+        if name in labels and added.get(name) == workflow_actor:
+            return tier
+    return None
+
+
 def relabelled(events, labels, family, workflow_actor=WORKFLOW_ACTOR):
     """Returns the key of the label of ``family`` that someone other than this workflow put on the pull request, or None.
 
@@ -526,6 +665,8 @@ def summary(result, warnings):
            f"Public API change: {result['jev'].get('public_api', 0):.0%}. "
            f"Breaking change: {result['jev'].get('breaking', 0):.0%}. "
            f"The path rules alone give {result['rules_tier']}.", ""] if result["jev"] else []),
+        *([f"Opened by {result['bot']}, a bot, so Jev is not asked. The path rules alone give {result['rules_tier']}.",
+           ""] if result.get("bot") else []),
         *([f"Rules: {', '.join(f'`{source}`' for source in result['sources'])}.", ""] if result.get("sources") else []),
         f"Declared tier: {declaration['risk_tier'] or 'not declared'}. "
         f"AI use: {declaration['ai_use'] or 'not declared'}. "
@@ -562,12 +703,9 @@ def run_event(args):
                     os.environ.get("GITHUB_API_URL", "https://api.github.com"))
     rules = load_rules(args.rules, args.repository_rules)
     labels = {label["name"] for label in pull_request.get("labels", [])}
-    files = github.changed_files(number)
-    state = jev_state(pull_request.get("title"), pull_request.get("body"), labels, files, rules)
-    answer = ask_jev(state, os.environ.get("TYPESAFE_API_KEY"), rules)
-    result = compute(changed_paths(files), labels, pull_request.get("body"), rules, answer)
-
     events = github.events(number)
+    previous = workflow_tier(events, labels) if input_unchanged(event, rules) else None
+    result = classify(pull_request, labels, github.changed_files(number), rules, previous=previous)
     tier_override = relabelled(events, labels, TIER_LABELS)
     if tier_override and tier_override != result["tier"]:
         result["override"] = tier_override
@@ -612,16 +750,13 @@ def run_replay(args):
         if not merged or merged[:10] < args.since or (args.until and merged[:10] > args.until):
             continue
         labels = {label["name"] for label in pull_request.get("labels", [])}
-        files = github.changed_files(pull_request["number"])
-        answer = None
-        if not args.rules_only:
-            state = jev_state(pull_request.get("title"), pull_request.get("body"), labels, files, rules)
-            answer = ask_jev(state, os.environ.get("TYPESAFE_API_KEY"), rules)
-        result = compute(changed_paths(files), labels, pull_request.get("body"), rules, answer)
+        result = classify(pull_request, labels, github.changed_files(pull_request["number"]), rules,
+                          use_jev=not args.rules_only)
         counts[result["tier"]] += 1
         rows.append({"number": pull_request["number"], "title": pull_request["title"],
                      "author": pull_request["user"]["login"], "base": pull_request["base"]["ref"],
-                     "tier": result["tier"], "rules_tier": result["rules_tier"], "jev": answer,
+                     "tier": result["tier"], "rules_tier": result["rules_tier"], "jev": result["jev"],
+                     "bot": result["bot"],
                      "reasons": result["reasons"]})
     print(json.dumps({"repository": args.repository, "since": args.since, "until": args.until,
                       "classifier": "rules" if args.rules_only else rules["jev"]["model"],

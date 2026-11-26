@@ -111,6 +111,89 @@ class RulesTest(unittest.TestCase):
         self.assertNotIn("main_source_diff_note", small)
         self.assertEqual(len(small["changed_files"]), 1)
 
+    def test_bot_authors(self):
+        self.assertEqual(rt.bot_author({"login": "renovate[bot]", "type": "Bot"}, EMPTY), "renovate[bot]")
+        self.assertEqual(rt.bot_author({"login": "dependabot[bot]"}, EMPTY), "dependabot[bot]")
+        self.assertEqual(rt.bot_author({"login": "micronaut-build", "type": "User"}, EMPTY), "micronaut-build")
+        self.assertIsNone(rt.bot_author({"login": "graemerocher", "type": "User"}, EMPTY))
+
+    def test_version_update(self):
+        self.assertEqual(rt.version_update("4.2.19.Final", "4.2.20.Final"), "patch")
+        self.assertEqual(rt.version_update("9.7.1", "9.8.0"), "minor")
+        self.assertEqual(rt.version_update("v5", "v6"), "major")
+        self.assertEqual(rt.version_update("5.0.0-M1", "5.0.0-M2"), "patch")
+        self.assertEqual(rt.version_update("1.2", "1.2.1"), "patch")
+        self.assertEqual(rt.version_update("3e5f45b", "9000827"), "digest")
+        self.assertIsNone(rt.version_update("latest", "stable"))
+
+    RENOVATE_CHANGE = """This PR contains the following updates:
+
+| Package | Change | [Age](https://x) | [Confidence](https://x) |
+|---|---|---|---|
+| [io.netty:netty-handler](https://netty.io) | `4.2.19.Final` → `4.2.20.Final` | ![age](https://x) | ![c](https://x) |
+| [io.netty:netty-codec](https://netty.io) | `4.2.19.Final` -> `4.3.0.Final` | ![age](https://x) | ![c](https://x) |
+
+---
+
+| Not | Change |
+|---|---|
+| ignored | `1` → `9` |
+"""
+    RENOVATE_UPDATE = """This PR contains the following updates:
+
+| Package | Type | Update | Change |
+|---|---|---|---|
+| [actions/setup-java](https://x) | action | major | `v5` → `v6` |
+"""
+
+    def test_renovate_tier(self):
+        self.assertEqual(rt.renovate_updates(self.RENOVATE_CHANGE), ["patch", "minor"])
+        self.assertEqual(rt.renovate_tier(self.RENOVATE_CHANGE, EMPTY), ("T1", "Renovate 2 updates: minor, patch"))
+        self.assertEqual(rt.renovate_tier(self.RENOVATE_UPDATE, EMPTY), ("T2", "Renovate update: major"))
+        digest = self.RENOVATE_UPDATE.replace("major", "digest").replace("`v5` → `v6`", "`3e5f45b` → `9000827`")
+        self.assertEqual(rt.renovate_tier(digest, EMPTY)[0], "T0")
+        self.assertEqual(rt.renovate_tier(self.RENOVATE_UPDATE.replace("major", "replacement"), EMPTY)[0], "T2")
+        self.assertIsNone(rt.renovate_tier("Nothing to see", EMPTY))
+
+    def test_bots_skip_jev(self):
+        def fail(*args, **kwargs):
+            raise AssertionError("Jev must not be asked")
+        original, rt.ask_jev = rt.ask_jev, fail
+        try:
+            files = [{"filename": "gradle/libs.versions.toml"}]
+            renovate = rt.classify({"user": {"login": "renovate[bot]", "type": "Bot"}, "body": self.RENOVATE_UPDATE.replace("major", "patch")},
+                                   set(), files, EMPTY)
+            self.assertEqual((renovate["tier"], renovate["bot"]), ("T0", "renovate[bot]"))
+            major = rt.classify({"user": {"login": "renovate[bot]"}, "body": self.RENOVATE_UPDATE}, set(),
+                                [{"filename": ".github/workflows/ci.yml"}], EMPTY)
+            self.assertEqual(major["tier"], "T2")
+            sync = rt.classify({"user": {"login": "micronaut-build"}, "body": "Update common files"}, set(),
+                               [{"filename": ".github/workflows/ci.yml"}, {"filename": "gradlew"}], EMPTY)
+            self.assertEqual(sync["tier"], "T0")
+            unreadable = rt.classify({"user": {"login": "renovate[bot]"}, "body": "no table"}, set(), files, EMPTY)
+            self.assertEqual(unreadable["tier"], "T1")
+            kept = rt.classify({"user": {"login": "someone"}, "body": ""}, set(), files, EMPTY, previous="T1")
+            self.assertEqual(kept["tier"], "T1")
+            self.assertIn("nothing Jev reads changed", kept["reasons"][0])
+        finally:
+            rt.ask_jev = original
+
+    def test_input_unchanged(self):
+        self.assertTrue(rt.input_unchanged({"action": "labeled", "label": {"name": "risk-tier: T1"}}, EMPTY))
+        self.assertFalse(rt.input_unchanged({"action": "unlabeled", "label": {"name": "type: breaking"}}, EMPTY))
+        self.assertTrue(rt.input_unchanged({"action": "ready_for_review"}, EMPTY))
+        self.assertTrue(rt.input_unchanged({"action": "edited", "changes": {"base": {}}}, EMPTY))
+        self.assertFalse(rt.input_unchanged({"action": "edited", "changes": {"body": {}}}, EMPTY))
+        self.assertFalse(rt.input_unchanged({"action": "synchronize"}, EMPTY))
+        self.assertFalse(rt.input_unchanged({"action": "opened"}, EMPTY))
+
+    def test_workflow_tier(self):
+        events = [{"event": "labeled", "label": {"name": "risk-tier: T1"}, "actor": {"login": rt.WORKFLOW_ACTOR}},
+                  {"event": "labeled", "label": {"name": "risk-tier: T2"}, "actor": {"login": "sdelamo"}}]
+        self.assertEqual(rt.workflow_tier(events, {"risk-tier: T1"}), "T1")
+        self.assertIsNone(rt.workflow_tier(events, {"risk-tier: T2"}))
+        self.assertIsNone(rt.workflow_tier([], set()))
+
     def test_questions_use_the_descriptions(self):
         rules = rt.merge_rules(EMPTY, {"tiers": {"T0": {"description": "Docs only."}}})
         questions = rt.jev_questions(rules)

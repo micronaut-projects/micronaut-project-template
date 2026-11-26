@@ -126,6 +126,13 @@ A row that still lists several options, or is missing, counts as not declared.
   missing or the rules are invalid: it never guesses a tier. The workflow summary names the model version and the rule
   files, and the tier that path rules alone give.
 
+  Bots are never sent to Jev. A Renovate pull request gets the tier of the update it makes, read from the update
+  table in its description: patch, digest and pin updates are T0, minor T1 and major T2, and a grouped pull request
+  takes the highest of its updates (`[bots.renovate] update_tiers`). Any other bot, such as micronaut-build's files
+  sync or a GitHub App, gets the tier of the path rules alone. Jev is asked once per run, with all its questions in one
+  request, and not at all when nothing it reads changed: on a label change, a reopen, ready for review, or an edit that
+  only retargets the base branch, the workflow keeps the tier it labelled last time.
+
   The rules are in two TOML files with the same format:
 
   * `.github/risk-tiers.global.toml`, the rules for every repository. It lives only in this template and is not

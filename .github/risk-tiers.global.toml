@@ -68,3 +68,14 @@ description = "Public API, a change of default behaviour, or anything breaking."
 paths = []
 # Labels that make a pull request T2 whatever Jev answers.
 labels = ["type: breaking"]
+
+[bots]
+# Pull requests opened by bots are not sent to Jev. GitHub Apps (logins ending in [bot]) are bots, and so are these
+# accounts. A bot other than Renovate gets the tier of the path rules alone.
+logins = ["micronaut-build"]
+
+[bots.renovate]
+logins = ["renovate[bot]"]
+# The tier of each Renovate update type, read from the update table of its description. A pull request that groups
+# several updates takes the highest tier among them. Update types not listed here, or that cannot be read, are T2.
+update_tiers = { major = "T2", minor = "T1", patch = "T0", digest = "T0", pin = "T0", pinDigest = "T0", lockFileMaintenance = "T0" }
