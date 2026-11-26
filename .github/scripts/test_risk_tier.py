@@ -111,6 +111,14 @@ class RulesTest(unittest.TestCase):
         self.assertNotIn("main_source_diff_note", small)
         self.assertEqual(len(small["changed_files"]), 1)
 
+    def test_tier_rules_are_always_t2(self):
+        loose = rt.merge_rules(EMPTY, {"tiers": {"T2": {"paths": []}, "T0": {"paths": [".github/**"]}}})
+        for path in rt.CLASSIFIER_PATHS:
+            self.assertEqual(rt.file_tier(path, loose), "T2", path)
+        result = rt.compute([".github/risk-tiers.toml"], set(), "", loose, jev("T0", t0=1.0))
+        self.assertEqual(result["tier"], "T2")
+        self.assertEqual(rt.file_tier(".github/workflows/ci.yml", loose), "T0")
+
     def test_bot_authors(self):
         self.assertEqual(rt.bot_author({"login": "renovate[bot]", "type": "Bot"}, EMPTY), "renovate[bot]")
         self.assertEqual(rt.bot_author({"login": "dependabot[bot]"}, EMPTY), "dependabot[bot]")
@@ -355,7 +363,7 @@ class JevTest(unittest.TestCase):
         state = rt.jev_state("Fix A", "Body<!-- hidden -->", {"type: bug"}, files, CORE)
         self.assertEqual(state["description"], "Body")
         self.assertEqual([f["path_rule_tier"] for f in state["changed_files"]], ["T2", "T0"])
-        self.assertEqual(state["t2_areas"], CORE["tiers"]["T2"]["paths"])
+        self.assertEqual(state["t2_areas"], rt.tier_paths(CORE, "T2"))
         self.assertNotIn("changed_files_note", state)
 
     def test_state_is_bounded(self):

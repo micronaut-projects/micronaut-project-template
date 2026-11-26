@@ -157,6 +157,10 @@ A row that still lists several options, or is missing, counts as not declared.
   paths = ["inject/src/main/**", "core-processor/src/main/**", "http*/src/main/**"]
   ```
 
+  Changing how pull requests are tiered is itself T2: `.github/risk-tiers.global.toml`, `.github/risk-tiers.toml`,
+  `.github/scripts/risk-tier.py` and `.github/workflows/risk-tier.yml` are T2 paths in every repository, and no rules
+  file can remove them.
+
   Prefer `src/main` globs over whole module directories, since a test change under a T2 path also becomes T2.
   `python3 .github/scripts/risk-tier.py replay <owner/repo> --since <date>` classifies past pull requests without
   labelling them (pass `--repository-rules` for a rules file that is not checked out), and `--rules-only` uses the
