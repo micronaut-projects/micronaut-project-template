@@ -212,6 +212,12 @@ jobs:
           fi
           mkdir -p target/.agents/skills
           rsync "${rsync_args[@]}" source/.agents/skills/ target/.agents/skills/
+      - name: Sync labels
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          REPO: micronaut-projects/micronaut-${{ matrix.repo }}
+        run: source/.github/scripts/sync-labels.sh "$REPO" source/.github/labels.json
+        shell: bash
       - name: Sleep for 3 minutes to avoid rate limiting
         run: sleep 180s
         shell: bash
