@@ -24,8 +24,11 @@ description (by default patch T0, minor T1, major T2, and the highest one when i
 such as micronaut-build's files sync, gets the tier of the path rules alone. Both are listed in ``[bots]``.
 
 Jev is asked once per run, with all three questions in one request, and only when something it reads may have
-changed: on a label change, a reopen, or an edit that leaves the title and description as they
-were, the tier this workflow labelled last time is kept.
+changed. The last answer is kept in the Actions cache with a fingerprint of the title, the description and the set
+of changed files, and reused while the fingerprint matches, so a push that only edits files the pull request already
+changed is not sent again. Without a cached answer, a label change, a reopen, or an edit that leaves the title and
+description as they were keeps the tier this workflow labelled last time. After a push, the script waits
+``debounce_seconds`` before asking Jev, and a newer push cancels the wait.
 
 Some facts always make a pull request T2, whatever Jev answers: a changed file that matches a T2 path, a T2 label such
 as ``type: breaking``, or "API or behaviour change: yes" in the pull request body. The other path rules only give Jev a
@@ -47,6 +50,7 @@ guessing a tier.
 Only the Python standard library (3.11 or later, for tomllib) is used.
 """
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -170,6 +174,9 @@ def validate_rules(rules):
     for key in ("model", "instructions"):
         if not isinstance(jev.get(key), str):
             errors.append(f"[jev] {key} must be a string")
+    debounce = jev.get("debounce_seconds", 0)
+    if not isinstance(debounce, int) or isinstance(debounce, bool) or not 0 <= debounce <= 1800:
+        errors.append("[jev] debounce_seconds must be a whole number from 0 to 1800")
     for key in ("round_up_at", "diff_t2_at"):
         if not isinstance(jev.get(key), (int, float)) or not 0 < jev[key] <= 1:
             errors.append(f"[jev] {key} must be a number above 0 and at most 1")
@@ -339,10 +346,22 @@ def renovate_tier(body, rules):
     return tier, f"Renovate {'update' if len(updates) == 1 else f'{len(updates)} updates'}: {', '.join(named)}"
 
 
-def classify(pull_request, labels, files, rules, use_jev=True, previous=None):
+def fingerprint(pull_request, files, rules):
+    """What decides whether Jev must be asked again: the title, the description, the set of changed files and the
+    model. A push that only changes lines of files the pull request already changed keeps the same fingerprint."""
+    key = {"title": pull_request.get("title") or "",
+           "body": re.sub(r"<!--.*?-->", "", pull_request.get("body") or "", flags=re.DOTALL).strip(),
+           "files": sorted(changed_paths(files)), "model": rules["jev"]["model"]}
+    return hashlib.sha256(json.dumps(key, sort_keys=True).encode()).hexdigest()
+
+
+def classify(pull_request, labels, files, rules, use_jev=True, previous=None, cache=None, wait=0):
     """Classifies a pull request: Renovate's by the update type it makes, other bots' by the path rules alone, and
-    everyone else's with Jev, unless use_jev is false. ``previous`` is the tier this workflow gave the pull request
-    last time, when nothing Jev reads changed since: it is kept instead of asking Jev again."""
+    everyone else's with Jev, unless use_jev is false.
+
+    Jev is not asked again when ``cache``, the last answer it gave for this pull request with its fingerprint, still
+    matches. Without a cache, ``previous`` is the tier this workflow gave the pull request last time, kept when the
+    event changed nothing Jev reads. ``wait`` is how many seconds to wait before asking Jev (see run_event)."""
     body = pull_request.get("body")
     bot = bot_author(pull_request.get("user"), rules)
     if bot:
@@ -351,14 +370,24 @@ def classify(pull_request, labels, files, rules, use_jev=True, previous=None):
         result = compute(changed_paths(files), labels, body, rules, fixed=renovate)
         result["bot"] = bot
         return result
+    key = fingerprint(pull_request, files, rules)
+    if cache and cache.get("fingerprint") == key and cache.get("answer"):
+        result = compute(changed_paths(files), labels, body, rules, cache["answer"])
+        result["reasons"][0] += " last time; the title, description and changed files are the same, so Jev is not asked again"
+        return result
     if previous:
         return compute(changed_paths(files), labels, body, rules,
                        fixed=(previous, f"kept {previous} from the last classification, since nothing Jev reads changed"))
     answer = None
     if use_jev:
+        if wait:
+            time.sleep(wait)
         answer = ask_jev(jev_state(pull_request.get("title"), body, labels, files, rules),
                          os.environ.get("TYPESAFE_API_KEY"), rules)
-    return compute(changed_paths(files), labels, body, rules, answer)
+    result = compute(changed_paths(files), labels, body, rules, answer)
+    if answer:
+        result["cache"] = {"fingerprint": key, "answer": answer}
+    return result
 
 
 def compute(paths, labels, body, rules, jev=None, fixed=None):
@@ -708,7 +737,24 @@ def run_event(args):
     labels = {label["name"] for label in pull_request.get("labels", [])}
     events = github.events(number)
     previous = workflow_tier(events, labels) if input_unchanged(event, rules) else None
-    result = classify(pull_request, labels, github.changed_files(number), rules, previous=previous)
+    # The last answer of Jev, restored by the workflow from the Actions cache, and saved there again when Jev answers.
+    state_dir = os.environ.get("RISK_TIER_STATE")
+    state_path = os.path.join(state_dir, "state.json") if state_dir else None
+    cache = None
+    if state_path and os.path.isfile(state_path):
+        with open(state_path, encoding="utf-8") as state_file:
+            cache = json.load(state_file)
+    # A burst of pushes costs one call: the workflow cancels this run when another push arrives during the wait.
+    wait = rules["jev"].get("debounce_seconds", 0) if event.get("action") == "synchronize" and not args.dry_run else 0
+    result = classify(pull_request, labels, github.changed_files(number), rules, previous=previous, cache=cache,
+                      wait=wait)
+    if state_path and result.get("cache"):
+        os.makedirs(state_dir, exist_ok=True)
+        with open(state_path, "w", encoding="utf-8") as state_file:
+            json.dump(result["cache"], state_file)
+        if os.environ.get("GITHUB_OUTPUT"):
+            with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+                output.write("save-state=true\n")
     tier_override = relabelled(events, labels, TIER_LABELS)
     if tier_override and tier_override != result["tier"]:
         result["override"] = tier_override

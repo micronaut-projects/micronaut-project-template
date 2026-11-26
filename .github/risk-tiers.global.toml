@@ -16,6 +16,9 @@ default_tier = "T1"
 model = "jev-1.14.0"
 # The highest tier with at least this probability wins, so an unsure answer rounds up.
 round_up_at = 0.25
+# Seconds to wait after a push before asking Jev. A newer push cancels the waiting run, so a burst of pushes costs one
+# call, at the price of the check staying pending that long. 0 turns it off.
+debounce_seconds = 180
 # A "changes public API" or "breaking change" answer at or above this probability makes the pull request T2.
 diff_t2_at = 0.5
 instructions = """What is the review risk tier of this pull request to a Micronaut framework module? Judge what the \

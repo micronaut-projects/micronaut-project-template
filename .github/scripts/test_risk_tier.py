@@ -178,6 +178,33 @@ class RulesTest(unittest.TestCase):
         finally:
             rt.ask_jev = original
 
+    def test_cached_answer_is_reused_while_the_fingerprint_matches(self):
+        calls, sleeps = [], []
+        original_ask, original_sleep = rt.ask_jev, rt.time.sleep
+        rt.ask_jev = lambda *args, **kwargs: calls.append(1) or jev("T1", t1=1.0)
+        rt.time.sleep = sleeps.append
+        try:
+            pr = {"user": {"login": "someone"}, "title": "Fix", "body": "Body <!-- hidden -->"}
+            files = [{"filename": "a/src/main/java/A.java", "patch": "+x"}]
+            first = rt.classify(pr, set(), files, EMPTY, wait=180)
+            self.assertEqual((first["tier"], len(calls), sleeps), ("T1", 1, [180]))
+            cache = first["cache"]
+            pushed = [{"filename": "a/src/main/java/A.java", "patch": "+y"}]
+            again = rt.classify(dict(pr, body="Body"), set(), pushed, EMPTY, cache=cache, wait=180)
+            self.assertEqual((again["tier"], len(calls), sleeps), ("T1", 1, [180]))
+            self.assertIn("not asked again", again["reasons"][0])
+            self.assertNotIn("cache", again)
+            rt.classify(pr, set(), pushed + [{"filename": "b/B.java"}], EMPTY, cache=cache)
+            rt.classify(dict(pr, title="Other"), set(), pushed, EMPTY, cache=cache)
+            self.assertEqual(len(calls), 3)
+        finally:
+            rt.ask_jev, rt.time.sleep = original_ask, original_sleep
+
+    def test_debounce_is_validated(self):
+        with self.assertRaisesRegex(ValueError, "debounce_seconds"):
+            rt.validate_rules(rt.merge_rules(EMPTY, {"jev": {"debounce_seconds": -1}}))
+        self.assertEqual(EMPTY["jev"]["debounce_seconds"], 180)
+
     def test_input_unchanged(self):
         self.assertTrue(rt.input_unchanged({"action": "labeled", "label": {"name": "risk-tier: T1"}}, EMPTY))
         self.assertFalse(rt.input_unchanged({"action": "unlabeled", "label": {"name": "type: breaking"}}, EMPTY))
