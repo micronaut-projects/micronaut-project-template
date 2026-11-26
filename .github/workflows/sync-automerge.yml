@@ -5,7 +5,7 @@ name: Merge sync pull requests
 #
 # A pull request is merged when micronaut-build opened it from a sync-files-* branch against the repository's default
 # branch, and every check on its head commit passed: the required checks when the branch has any, all checks
-# otherwise. Pending checks are left for the next hour. Failing checks, a missing approving review or another
+# otherwise. Archived repositories are skipped. Pending checks are left for the next hour. Failing checks, a missing approving review or another
 # refusal leave the pull request open for a maintainer, and are listed in the job summary.
 on:
   workflow_dispatch:
@@ -46,7 +46,10 @@ jobs:
               note "${url}" "could not read"; failed=1; continue; }
             IFS=$'\t' read -r head sha base author draft <<< "${info}"
             repo="${url#https://github.com/}"; repo="${repo%/pull/*}"
-            default="$(gh api "repos/${repo}" --jq .default_branch)" || { note "${url}" "could not read repository"; failed=1; continue; }
+            repo_info="$(gh api "repos/${repo}" --jq '[.default_branch, (.archived|tostring)] | @tsv')" || {
+              note "${url}" "could not read repository"; failed=1; continue; }
+            IFS=$'\t' read -r default archived <<< "${repo_info}"
+            if [ "${archived}" = "true" ]; then note "${url}" "skipped: repository is archived"; continue; fi
             if [ "${author}" != "micronaut-build" ] || [[ "${head}" != sync-files-* ]] || [ "${draft}" = "true" ]; then
               note "${url}" "skipped: not a sync pull request"; continue
             fi
