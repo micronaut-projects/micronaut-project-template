@@ -224,9 +224,10 @@ All Micronaut repos have 2 dependency upgrade checking mechanism:
    GitHub Actions workflows. On the other hand, its biggest downside is that it's unable to find newer versions for
    those defined in `gradle.properties`. It will also send different PRs for the same version upgrade if the artifact ID
    is different. To keep that down, the synced `.github/renovate.json` groups Gradle and Maven updates by kind: one
-   pull request for all patch updates, which merges itself once its checks pass, and one for all minor updates, which
-   needs a maintainer's review. Patch updates of 0.x versions go with the minor ones. Major updates and Micronaut
-   modules still get their own pull requests, and GitHub Actions keep their own groups.
+   pull request for all patch updates, which merges itself once its checks pass, and one pull request per Maven group
+   ID for minor updates, so unrelated libraries never ship together. Those need a maintainer's review. Patch updates
+   of 0.x versions go with the minor updates of their group ID. Major updates and Micronaut modules still get their
+   own pull requests, and GitHub Actions keep their own groups.
 
 2. To overcome those disadvantages, we have our own dependency upgrade solution based on the
    [Gradle Use Latest Versions Plugin](https://github.com/patrikerdes/gradle-use-latest-versions-plugin). It runs daily

@@ -55,15 +55,15 @@
     {
       "matchManagers": ["gradle", "maven"],
       "matchUpdateTypes": ["minor"],
-      "groupName": "dependency minor updates",
-      "groupSlug": "minor-updates"
+      "groupName": "{{{replace ':.*' '' packageName}}} minor updates",
+      "groupSlug": "minor-{{{replace ':.*' '' packageName}}}"
     },
     {
       "matchManagers": ["gradle", "maven"],
       "matchUpdateTypes": ["patch"],
       "matchCurrentVersion": "/^0/",
-      "groupName": "dependency minor updates",
-      "groupSlug": "minor-updates"
+      "groupName": "{{{replace ':.*' '' packageName}}} minor updates",
+      "groupSlug": "minor-{{{replace ':.*' '' packageName}}}"
     },
     {
       "matchPackageNames": [
