@@ -51,7 +51,15 @@ jobs:
           for repo in serialization security; do
             python3 .github/scripts/risk-tier.py --config /dev/null replay "micronaut-projects/micronaut-$repo" \
               --since 2026-10-28 --until 2026-11-25 > "replay-$repo.json"
-            python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(sys.argv[1], d['counts'])" "replay-$repo.json"
+            python3 - "replay-$repo.json" <<'PY'
+          import json, sys
+          d = json.load(open(sys.argv[1]))
+          print(sys.argv[1], d["counts"])
+          for p in d["pull_requests"]:
+              j = p["jev"] or {}
+              print(f'#{p["number"]}\trules {p["rules_tier"]}\tfinal {p["tier"]}\tjev {j.get("choice")} '
+                    f'{j.get("probabilities")}\tapi {j.get("public_api", 0):.2f}\tbreaking {j.get("breaking", 0):.2f}\t{p["title"][:70]}')
+          PY
           done
       - name: "📦 Upload replay results"
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
