@@ -1,0 +1,47 @@
+name: Risk tier script tests
+# Runs the unit tests of .github/scripts/risk-tier.py. Only the template runs them: the test file is not synced.
+on:
+  push:
+    paths:
+      - ".github/scripts/risk-tier.py"
+      - ".github/risk-tiers.global.toml"
+      - ".github/scripts/test_risk_tier.py"
+      - ".github/PULL_REQUEST_TEMPLATE.md"
+  pull_request:
+    paths:
+      - ".github/workflows/risk-tier-tests.yml"
+      - ".github/scripts/risk-tier.py"
+      - ".github/risk-tiers.global.toml"
+      - ".github/scripts/test_risk_tier.py"
+      - ".github/PULL_REQUEST_TEMPLATE.md"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    if: github.repository == 'micronaut-projects/micronaut-project-template'
+    runs-on: ubuntu-latest
+    steps:
+      - name: "📥 Checkout repository"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: "🧪 Run the tests"
+        run: python3 .github/scripts/test_risk_tier.py -v
+
+  live-jev:
+    # Classifies this pull request with the real Jev API, without changing labels, so that a change to the request
+    # format fails here before it reaches every repository. Fork pull requests get no secrets, so it only runs for
+    # branches of this repository.
+    if: >-
+      github.repository == 'micronaut-projects/micronaut-project-template' &&
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: "📥 Checkout repository"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: "🏷 Classify this pull request with Jev"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+        run: python3 .github/scripts/risk-tier.py event --dry-run

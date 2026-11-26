@@ -4,3 +4,4 @@
 - .rsync-filter
 - template-cleanup.yml
 - skills-validation.yml
+- risk-tier-tests.yml

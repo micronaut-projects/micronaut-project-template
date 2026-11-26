@@ -1,0 +1,288 @@
+[
+  {
+    "name": "closed: cannot reproduce",
+    "color": "fbca04",
+    "description": "The issue cannot be reproduced"
+  },
+  {
+    "name": "closed: duplicate",
+    "color": "cfd3d7",
+    "description": "This issue or pull request already exists",
+    "aliases": [
+      "duplicate"
+    ]
+  },
+  {
+    "name": "closed: invalid",
+    "color": "e4e669",
+    "description": "The issue doesn't seem right",
+    "aliases": [
+      "invalid"
+    ]
+  },
+  {
+    "name": "closed: notabug",
+    "color": "21b2a1",
+    "description": "The issue is not a bug"
+  },
+  {
+    "name": "closed: question",
+    "color": "bae585",
+    "description": "The issue is a question"
+  },
+  {
+    "name": "closed: stale",
+    "color": "bfd4f2",
+    "description": ""
+  },
+  {
+    "name": "closed: won't fix",
+    "color": "306da3",
+    "description": "The issue will not be worked on",
+    "aliases": [
+      "wontfix"
+    ]
+  },
+  {
+    "name": "help wanted",
+    "color": "008672",
+    "description": "Extra attention is needed"
+  },
+  {
+    "name": "info: good first issue",
+    "color": "7057ff",
+    "description": "Good for newcomers",
+    "aliases": [
+      "good first issue"
+    ]
+  },
+  {
+    "name": "info: workaround available",
+    "color": "bfdadc",
+    "description": "A workaround is available for the issue"
+  },
+  {
+    "name": "lang: groovy",
+    "color": "4298B8",
+    "description": "Issues or features specific to Groovy"
+  },
+  {
+    "name": "lang: kotlin",
+    "color": "e99695",
+    "description": "Issues or features specific to Kotlin"
+  },
+  {
+    "name": "relates-to: build",
+    "color": "8ceadc",
+    "description": "label for issues related to the build file or CI"
+  },
+  {
+    "name": "relates-to: graal",
+    "color": "ffa347",
+    "description": "",
+    "aliases": [
+      "graal"
+    ]
+  },
+  {
+    "name": "status: acknowledged",
+    "color": "1d76db",
+    "description": ""
+  },
+  {
+    "name": "status: awaiting feedback",
+    "color": "f0ff6b",
+    "description": ""
+  },
+  {
+    "name": "status: awaiting third-party",
+    "color": "ed84cd",
+    "description": "Awaiting changes to a third party library"
+  },
+  {
+    "name": "status: awaiting validation",
+    "color": "5319e7",
+    "description": "Waiting to be validated as a real issue"
+  },
+  {
+    "name": "status: example attached",
+    "color": "f95ce4",
+    "description": ""
+  },
+  {
+    "name": "status: future consideration",
+    "color": "46a0f4",
+    "description": "The issue will be considered at a future date"
+  },
+  {
+    "name": "status: in progress",
+    "color": "fbca04",
+    "description": ""
+  },
+  {
+    "name": "status: needs rebase",
+    "color": "ea7835",
+    "description": "This pull request needs rebased to another branch"
+  },
+  {
+    "name": "status: next major version",
+    "color": "04a6ce",
+    "description": "The issue will be considered for the next major version"
+  },
+  {
+    "name": "status: pr submitted",
+    "color": "47edb0",
+    "description": "A pull request has been submitted for the issue"
+  },
+  {
+    "name": "status: stale",
+    "color": "bfd4f2",
+    "description": ""
+  },
+  {
+    "name": "status: under consideration",
+    "color": "c5def5",
+    "description": "The issue is being considered, but has not been accepted yet"
+  },
+  {
+    "name": "status: validated",
+    "color": "89bfe5",
+    "description": "An issue that has been validated as being a bug"
+  },
+  {
+    "name": "type: breaking",
+    "color": "fbca04",
+    "description": "Introduces a breaking change"
+  },
+  {
+    "name": "type: bug",
+    "color": "d73a4a",
+    "description": "Something isn't working",
+    "aliases": [
+      "bug"
+    ]
+  },
+  {
+    "name": "type: dependency-upgrade",
+    "color": "727ac9",
+    "description": "Upgrade a dependency",
+    "aliases": [
+      "dependency-upgrade",
+      "dependencies"
+    ]
+  },
+  {
+    "name": "type: deprecated",
+    "color": "cfd3d7",
+    "description": "Something has been deprecated"
+  },
+  {
+    "name": "type: docs",
+    "color": "769100",
+    "description": "",
+    "aliases": [
+      "documentation"
+    ]
+  },
+  {
+    "name": "type: enhancement",
+    "color": "a2eeef",
+    "description": "New feature or request",
+    "aliases": [
+      "enhancement"
+    ]
+  },
+  {
+    "name": "type: improvement",
+    "color": "017054",
+    "description": "A minor improvement to an existing feature"
+  },
+  {
+    "name": "type: question",
+    "color": "db7ac3",
+    "description": "Further information is requested",
+    "aliases": [
+      "question"
+    ]
+  },
+  {
+    "name": "type: regression",
+    "color": "d85052",
+    "description": "A breaking change was introduced in a minor or patch release"
+  },
+  {
+    "name": "type: removed",
+    "color": "d85052",
+    "description": "Something has been removed"
+  },
+  {
+    "name": "type: task",
+    "color": "eaa4b3",
+    "description": "A task that needs to be completed"
+  },
+  {
+    "name": "priority: high",
+    "color": "eb5a46",
+    "description": "High priority"
+  },
+  {
+    "name": "priority: medium",
+    "color": "ff9f1a",
+    "description": "Medium priority"
+  },
+  {
+    "name": "priority: low",
+    "color": "f2d600",
+    "description": "Low priority"
+  },
+  {
+    "name": "hacktoberfest-accepted",
+    "color": "fef2c0",
+    "description": "PR accepted for Hacktoberfest"
+  },
+  {
+    "name": "major change",
+    "color": "eb5a46",
+    "description": "This item represents a major change in functionality and must be voted on before merging"
+  },
+  {
+    "name": "found by: fuzzing",
+    "color": "cdb1ae",
+    "description": "This item was found by fuzzing"
+  },
+  {
+    "name": "relates-to: micronaut 5 prep",
+    "color": "b33fa5",
+    "description": "label for issues related to micronaut 5 preparation"
+  },
+  {
+    "name": "ai-use: none",
+    "color": "ededed",
+    "description": "No AI tool wrote any part of the change"
+  },
+  {
+    "name": "ai-use: assisted",
+    "color": "c5def5",
+    "description": "A person wrote the change with AI help"
+  },
+  {
+    "name": "ai-use: agent-generated",
+    "color": "5319e7",
+    "description": "An agent wrote most of the change and a person reviewed it"
+  },
+  {
+    "name": "risk-tier: T0",
+    "color": "0e8a16",
+    "description": "Build, docs, tests and synced files. Nothing published changes"
+  },
+  {
+    "name": "risk-tier: T1",
+    "color": "fbca04",
+    "description": "Internal module code"
+  },
+  {
+    "name": "risk-tier: T2",
+    "color": "b60205",
+    "description": "Public API, default behaviour, the repository's sensitive areas, or breaking"
+  }
+]

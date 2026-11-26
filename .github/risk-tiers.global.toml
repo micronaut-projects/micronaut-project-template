@@ -1,0 +1,84 @@
+# Risk tier rules for every Micronaut repository, read by .github/scripts/risk-tier.py.
+#
+# This file is not synced: the risk-tier workflow of every repository fetches it from the default branch of
+# micronaut-project-template on each run, so a change here applies everywhere once merged. A repository can have its
+# own .github/risk-tiers.toml in the same format, whose values overwrite these: tables merge key by key, and any other
+# value it sets, lists included, replaces the one here. See MAINTAINING.md, "Risk tiers and AI disclosure".
+#
+# The descriptions are what Jev reads to pick a tier, so the classification is tuned by editing them.
+# Globs are gitignore-style: `**` crosses directories, `*` does not, and a glob without `/` matches at any depth.
+
+# The tier of a file that matches no `paths` below, for the per-file hint Jev gets and for `replay --rules-only`.
+default_tier = "T1"
+
+[jev]
+# Pinned, since aliases such as jev-latest move with each release. The check summary names the model that answered.
+model = "jev-1.14.0"
+# The highest tier with at least this probability wins, so an unsure answer rounds up.
+round_up_at = 0.25
+# Seconds to wait after a push before asking Jev. A newer push cancels the waiting run, so a burst of pushes costs one
+# call, at the price of the check staying pending that long. 0 turns it off.
+debounce_seconds = 180
+# A "changes public API" or "breaking change" answer at or above this probability makes the pull request T2.
+diff_t2_at = 0.5
+instructions = """What is the review risk tier of this pull request to a Micronaut framework module? Judge what the \
+change can break for users of the published artifacts, from the files it changes, their size, the changed lines of \
+main sources, the title, description and labels. Each file carries the tier that path rules alone would give it, as a \
+hint."""
+
+[public_api]
+description = """Micronaut's public API is every public or protected class, interface, method, field, constructor, \
+annotation or annotation member in main sources, except types or members annotated @Internal and code in packages \
+whose name contains 'internal'. Configuration property names, default values and the behaviour of public methods count \
+too."""
+
+[tiers.T0]
+description = "Nothing published changes: tests, documentation, build logic, CI, or files synced from the template."
+# Files that path rules make T0.
+paths = [
+  "**/src/test/**",
+  "**/src/testFixtures/**",
+  "test-suite*/**",
+  "tests/**",
+  "doc-examples/**",
+  "src/main/docs/**",
+  "*.md",
+  "*.adoc",
+  "gradle/**",
+  "buildSrc/**",
+  ".github/**",
+  ".agents/**",
+  ".claude/**",
+  "config/**",
+  ".clineignore",
+  ".editorconfig",
+  ".gitattributes",
+  ".gitignore",
+  ".sdkmanrc",
+  "gradlew",
+  "gradlew.bat",
+  "LICENSE",
+]
+
+[tiers.T1]
+description = "Internal module code or dependency versions: published, but no public API or sensitive area changes."
+# Files that path rules make T1 even when a T0 glob matches them: a version bump can change published dependencies.
+paths = ["gradle/libs.versions.toml"]
+
+[tiers.T2]
+description = "Public API, a change of default behaviour, or anything breaking."
+# Files that make a pull request T2 whatever Jev answers. Repositories list their sensitive areas here.
+paths = []
+# Labels that make a pull request T2 whatever Jev answers.
+labels = ["type: breaking"]
+
+[bots]
+# Pull requests opened by bots are not sent to Jev. GitHub Apps (logins ending in [bot]) are bots, and so are these
+# accounts. A bot other than Renovate gets the tier of the path rules alone.
+logins = ["micronaut-build"]
+
+[bots.renovate]
+logins = ["renovate[bot]"]
+# The tier of each Renovate update type, read from the update table of its description. A pull request that groups
+# several updates takes the highest tier among them. Update types not listed here, or that cannot be read, are T2.
+update_tiers = { major = "T2", minor = "T1", patch = "T0", digest = "T0", pin = "T0", pinDigest = "T0", lockFileMaintenance = "T0" }
