@@ -46,6 +46,26 @@
       "automerge": true
     },
     {
+      "matchManagers": ["gradle", "maven"],
+      "matchUpdateTypes": ["patch"],
+      "matchCurrentVersion": "!/^0/",
+      "groupName": "dependency patch updates",
+      "groupSlug": "patch-updates"
+    },
+    {
+      "matchManagers": ["gradle", "maven"],
+      "matchUpdateTypes": ["minor"],
+      "groupName": "dependency minor updates",
+      "groupSlug": "minor-updates"
+    },
+    {
+      "matchManagers": ["gradle", "maven"],
+      "matchUpdateTypes": ["patch"],
+      "matchCurrentVersion": "/^0/",
+      "groupName": "dependency minor updates",
+      "groupSlug": "minor-updates"
+    },
+    {
       "matchPackageNames": [
         "/.*micronaut.*/"
       ],
