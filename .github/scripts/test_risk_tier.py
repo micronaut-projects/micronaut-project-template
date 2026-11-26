@@ -13,8 +13,10 @@ _spec = importlib.util.spec_from_file_location(
 rt = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(rt)
 
-EMPTY = {"t0": [], "t2": []}
-CORE = {"t0": [], "t2": ["inject/src/main/**", "core-processor/src/main/**", "http*/src/main/**"]}
+_GLOBAL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "risk-tiers.global.toml")
+EMPTY = rt.load_rules(_GLOBAL, None)
+CORE = rt.merge_rules(EMPTY, {"tiers": {"T2": {
+    "paths": ["inject/src/main/**", "core-processor/src/main/**", "http*/src/main/**"]}}})
 
 _TEMPLATE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "PULL_REQUEST_TEMPLATE.md")
 TEMPLATE_BODY = open(_TEMPLATE, encoding="utf-8").read() if os.path.exists(_TEMPLATE) else None
@@ -47,26 +49,56 @@ class GlobTest(unittest.TestCase):
         self.assertTrue(rt.matches_any("buildSrc/a/b.gradle", ["buildSrc/"]))
 
 
-class TiersFileTest(unittest.TestCase):
-    def test_parse(self):
-        text = """# T2 paths for micronaut-core
-t2:
-  - "inject/src/main/**"   # the DI container
-  - 'core-processor/src/main/**'
-  - http/src/main/**
-t0:
-  - benchmarks/**
-"""
-        self.assertEqual(rt.parse_tiers_file(text), {
-            "t2": ["inject/src/main/**", "core-processor/src/main/**", "http/src/main/**"],
-            "t0": ["benchmarks/**"]})
+class RulesTest(unittest.TestCase):
+    def test_global_rules_are_valid(self):
+        self.assertEqual(EMPTY["default_tier"], "T1")
+        self.assertIn("type: breaking", EMPTY["tiers"]["T2"]["labels"])
+        self.assertEqual(EMPTY["sources"], [_GLOBAL])
 
-    def test_empty_list(self):
-        self.assertEqual(rt.parse_tiers_file("t0: []\nt2:\n  - a/**\n"), {"t0": [], "t2": ["a/**"]})
+    def test_merge_adds_lists_and_replaces_values(self):
+        merged = rt.merge_rules(EMPTY, {"jev": {"diff_t2_at": 0.7}, "tiers": {"T2": {"paths": ["a/**"], "labels": ["x"]}}})
+        self.assertEqual(merged["jev"]["diff_t2_at"], 0.7)
+        self.assertEqual(merged["jev"]["model"], EMPTY["jev"]["model"])
+        self.assertEqual(merged["tiers"]["T2"]["paths"], ["a/**"])
+        self.assertEqual(merged["tiers"]["T2"]["labels"], ["type: breaking", "x"])
+        self.assertEqual(merged["tiers"]["T0"]["paths"], EMPTY["tiers"]["T0"]["paths"])
 
-    def test_unknown_key(self):
-        with self.assertRaises(ValueError):
-            rt.parse_tiers_file("t1:\n  - a/**\n")
+    def test_add_description(self):
+        merged = rt.merge_rules(EMPTY, {"tiers": {"T2": {"add_description": "In core, anything under inject."}}})
+        self.assertTrue(merged["tiers"]["T2"]["description"].startswith(EMPTY["tiers"]["T2"]["description"]))
+        self.assertTrue(merged["tiers"]["T2"]["description"].endswith("In core, anything under inject."))
+        self.assertNotIn("add_description", merged["tiers"]["T2"])
+
+    def test_description_replaces(self):
+        merged = rt.merge_rules(EMPTY, {"tiers": {"T1": {"description": "Anything else."}}})
+        self.assertEqual(merged["tiers"]["T1"]["description"], "Anything else.")
+
+    def test_repository_file_is_merged(self):
+        import tempfile
+        with tempfile.NamedTemporaryFile("w", suffix=".toml", delete=False) as repo:
+            repo.write('[tiers.T2]\npaths = ["inject/src/main/**"]\n')
+        try:
+            rules = rt.load_rules(_GLOBAL, repo.name)
+        finally:
+            os.unlink(repo.name)
+        self.assertEqual(rules["tiers"]["T2"]["paths"], ["inject/src/main/**"])
+        self.assertEqual(rules["sources"], [_GLOBAL, repo.name])
+        self.assertEqual(rt.load_rules(_GLOBAL, "/nonexistent.toml")["sources"], [_GLOBAL])
+
+    def test_invalid_rules_fail(self):
+        with self.assertRaisesRegex(ValueError, "round_up_at"):
+            rt.validate_rules(rt.merge_rules(EMPTY, {"jev": {"round_up_at": 2}}))
+        with self.assertRaisesRegex(ValueError, "unknown tiers T3"):
+            rt.validate_rules(rt.merge_rules(EMPTY, {"tiers": {"T3": {"description": "x"}}}))
+        with self.assertRaisesRegex(ValueError, "default_tier"):
+            rt.validate_rules(rt.merge_rules(EMPTY, {"default_tier": "T5"}))
+
+    def test_questions_use_the_descriptions(self):
+        rules = rt.merge_rules(EMPTY, {"tiers": {"T0": {"description": "Docs only."}}})
+        questions = rt.jev_questions(rules)
+        self.assertEqual(questions["tier"]["criteria"]["T0"], "Docs only.")
+        self.assertIn(EMPTY["public_api"]["description"], questions["public_api"]["instructions"])
+        self.assertEqual(questions["breaking"]["type"], "noul")
 
 
 class FileTierTest(unittest.TestCase):
@@ -87,7 +119,7 @@ class FileTierTest(unittest.TestCase):
         self.assertEqual(rt.file_tier("inject/src/test/java/A.java", CORE), "T0")
 
     def test_repository_t0(self):
-        self.assertEqual(rt.file_tier("benchmarks/A.java", {"t0": ["benchmarks/**"], "t2": []}), "T0")
+        self.assertEqual(rt.file_tier("benchmarks/A.java", rt.merge_rules(EMPTY, {"tiers": {"T0": {"paths": ["benchmarks/**"]}}})), "T0")
 
 
 class DeclarationTest(unittest.TestCase):
@@ -169,15 +201,15 @@ class JevTest(unittest.TestCase):
         self.assertFalse(result["declared_too_low"])
 
     def test_unsure_answer_rounds_up(self):
-        self.assertEqual(rt.jev_tier(jev("T0", t0=0.6, t1=0.3, t2=0.1)), "T1")
-        self.assertEqual(rt.jev_tier(jev("T1", t0=0.2, t1=0.5, t2=0.3)), "T2")
+        self.assertEqual(rt.jev_tier(jev("T0", t0=0.6, t1=0.3, t2=0.1), 0.25), "T1")
+        self.assertEqual(rt.jev_tier(jev("T1", t0=0.2, t1=0.5, t2=0.3), 0.25), "T2")
 
     def test_choice_without_probabilities(self):
-        self.assertEqual(rt.jev_tier({"choice": "T1", "confidence": 0.8}), "T1")
+        self.assertEqual(rt.jev_tier({"choice": "T1", "confidence": 0.8}, 0.25), "T1")
 
     def test_unknown_choice_fails(self):
         with self.assertRaises(ValueError):
-            rt.jev_tier({"choice": "medium"})
+            rt.jev_tier({"choice": "medium"}, 0.25)
 
     def test_repository_t2_area_cannot_be_lowered(self):
         result = rt.compute(["inject/src/main/java/A.java"], set(), "", CORE, jev("T0", t0=1.0))
@@ -195,7 +227,7 @@ class JevTest(unittest.TestCase):
         state = rt.jev_state("Fix A", "Body<!-- hidden -->", {"type: bug"}, files, CORE)
         self.assertEqual(state["description"], "Body")
         self.assertEqual([f["path_rule_tier"] for f in state["changed_files"]], ["T2", "T0"])
-        self.assertEqual(state["repository_t2_areas"], CORE["t2"])
+        self.assertEqual(state["t2_areas"], CORE["tiers"]["T2"]["paths"])
         self.assertNotIn("changed_files_note", state)
 
     def test_state_is_bounded(self):
@@ -227,7 +259,7 @@ class JevTest(unittest.TestCase):
             sent["body"] = json.loads(request.data)
             return Response()
 
-        answer = rt.ask_jev({"title": "t"}, "key", opener=opener)
+        answer = rt.ask_jev({"title": "t"}, "key", EMPTY, opener=opener)
         self.assertEqual((answer["choice"], answer["model"]), ("T1", "jev-1.14.0"))
         self.assertEqual(sent["url"], rt.JEV_URL)
         self.assertEqual(sent["auth"], "Bearer key")
@@ -297,7 +329,7 @@ class JevTest(unittest.TestCase):
                 raise urllib.error.HTTPError(rt.JEV_URL, 429, "slow down", {"retry-after": "0"}, io.BytesIO(b""))
             return Response()
 
-        self.assertEqual(rt.ask_jev({}, "key", opener=opener)["choice"], "T0")
+        self.assertEqual(rt.ask_jev({}, "key", EMPTY, opener=opener)["choice"], "T0")
         self.assertEqual(len(calls), 2)
 
     def test_error_fails(self):
@@ -308,11 +340,11 @@ class JevTest(unittest.TestCase):
             raise urllib.error.HTTPError(rt.JEV_URL, 401, "bad key", {}, io.BytesIO(b"invalid key"))
 
         with self.assertRaisesRegex(RuntimeError, "401"):
-            rt.ask_jev({}, "key", opener=opener)
+            rt.ask_jev({}, "key", EMPTY, opener=opener)
 
     def test_missing_key_fails(self):
         with self.assertRaises(RuntimeError):
-            rt.ask_jev({}, None)
+            rt.ask_jev({}, None, EMPTY)
 
     def test_summary_names_the_model(self):
         result = rt.compute(["a/src/main/A.java"], set(), "", EMPTY, jev("T1", t1=0.9, t0=0.1))

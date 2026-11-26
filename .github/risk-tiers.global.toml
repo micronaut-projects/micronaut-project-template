@@ -1,0 +1,72 @@
+# Risk tier rules for every Micronaut repository, read by .github/scripts/risk-tier.py.
+#
+# This file is synced from micronaut-project-template by the files sync workflow: edit it there. A repository adds
+# its own rules in .github/risk-tiers.toml, which is not synced and uses the same format. Values such as the model
+# and the thresholds in that file override the ones here, lists such as paths and labels are added to these,
+# `description` replaces a description and `add_description` appends to it. See MAINTAINING.md, "Risk tiers and AI
+# disclosure".
+#
+# The descriptions are what Jev reads to pick a tier, so the classification is tuned by editing them.
+# Globs are gitignore-style: `**` crosses directories, `*` does not, and a glob without `/` matches at any depth.
+
+# The tier of a file that matches no `paths` below, for the per-file hint Jev gets and for `replay --rules-only`.
+default_tier = "T1"
+
+[jev]
+# Pinned, since aliases such as jev-latest move with each release. The check summary names the model that answered.
+model = "jev-1.14.0"
+# The highest tier with at least this probability wins, so an unsure answer rounds up.
+round_up_at = 0.25
+# A "changes public API" or "breaking change" answer at or above this probability makes the pull request T2.
+diff_t2_at = 0.5
+instructions = """What is the review risk tier of this pull request to a Micronaut framework module? Judge what the \
+change can break for users of the published artifacts, from the files it changes, their size, the changed lines of \
+main sources, the title, description and labels. Each file carries the tier that path rules alone would give it, as a \
+hint."""
+
+[public_api]
+description = """Micronaut's public API is every public or protected class, interface, method, field, constructor, \
+annotation or annotation member in main sources, except types or members annotated @Internal and code in packages \
+whose name contains 'internal'. Configuration property names, default values and the behaviour of public methods count \
+too."""
+
+[tiers.T0]
+description = "Nothing published changes: tests, documentation, build logic, CI, or files synced from the template."
+# Files that path rules make T0.
+paths = [
+  "**/src/test/**",
+  "**/src/testFixtures/**",
+  "test-suite*/**",
+  "tests/**",
+  "doc-examples/**",
+  "src/main/docs/**",
+  "*.md",
+  "*.adoc",
+  "gradle/**",
+  "buildSrc/**",
+  ".github/**",
+  ".agents/**",
+  ".claude/**",
+  "config/**",
+  ".clineignore",
+  ".editorconfig",
+  ".gitattributes",
+  ".gitignore",
+  ".sdkmanrc",
+  "gradlew",
+  "gradlew.bat",
+  "LICENSE",
+]
+
+[tiers.T1]
+description = "Internal module code or dependency versions: published, but no public API or sensitive area changes."
+# Files that path rules make T1 even when a T0 glob matches them: a version bump can change published dependencies.
+paths = ["gradle/libs.versions.toml"]
+
+[tiers.T2]
+description = """Public API, dependency injection, annotation processing, serialization, security, HTTP, a change of \
+default behaviour, or anything breaking."""
+# Files that make a pull request T2 whatever Jev answers. Repositories list their sensitive areas here.
+paths = []
+# Labels that make a pull request T2 whatever Jev answers.
+labels = ["type: breaking"]

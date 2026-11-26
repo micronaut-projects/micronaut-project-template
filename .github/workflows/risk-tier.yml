@@ -5,9 +5,9 @@
 # and edit them there. Note that it will be sync'ed to all the Micronaut repos
 name: Risk tier
 # Labels each pull request with its risk tier (risk-tier: T0, T1 or T2), classified by TypeSafe's Jev model through
-# .github/scripts/risk-tier.py, and its AI use (ai-use: none, assisted or agent-generated) as declared. Changes in the
-# repository's T2 areas (.github/risk-tiers.yml, not synced), the type: breaking label or a declared API change are
-# always T2. Relabelling reclassifies a pull request: labels added by anyone else are kept. The check fails when the
+# .github/scripts/risk-tier.py, and its AI use (ai-use: none, assisted or agent-generated) as declared. The rules are in
+# .github/risk-tiers.global.toml (synced) and the repository's own .github/risk-tiers.toml (optional, not synced). A
+# change under a T2 path, a T2 label such as type: breaking, or a declared API change is always T2. Relabelling reclassifies a pull request: labels added by anyone else are kept. The check fails when the
 # tier declared in the pull request description is lower than the classified one, or when Jev cannot be reached. The
 # tiers are described in MAINTAINING.md, under "Risk tiers and AI disclosure".
 #
@@ -51,10 +51,11 @@ jobs:
           persist-credentials: false
           sparse-checkout: |
             .github/scripts/risk-tier.py
-            .github/risk-tiers.yml
+            .github/risk-tiers.global.toml
+            .github/risk-tiers.toml
           sparse-checkout-cone-mode: false
       - name: "🏷 Compute and label the risk tier"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
-        run: python3 .github/scripts/risk-tier.py --config .github/risk-tiers.yml event
+        run: python3 .github/scripts/risk-tier.py event

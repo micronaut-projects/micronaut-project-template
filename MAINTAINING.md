@@ -115,31 +115,39 @@ A row that still lists several options, or is missing, counts as not declared.
   The "Risk tier" workflow (`.github/workflows/risk-tier.yml`) classifies every pull request with
   [TypeSafe's Jev model](https://docs.typesafe.ai) and sets a `risk-tier: T0`, `risk-tier: T1` or `risk-tier: T2`
   label. Jev gets the title, description, labels, changed file names with their line counts, the changed lines of
-  main source files (T2 areas first, up to about 15k tokens; tests, docs and build files are left out) and the
-  repository's T2 areas, and returns a probability per tier. The workflow takes the highest tier with at least a 25%
-  probability, so an unsure answer rounds up. Jev also answers whether the diff changes public API (public or
-  protected members of main sources, except `@Internal` and `internal` packages) and whether it breaks users. Either
-  at 50% or more makes the pull request T2, and these answers never lower a tier. They are an early warning: the
-  build's binary compatibility check stays the definitive test for binary breaks. Its `risk-tier` check fails when the declared tier is lower than the
-  classified one, and when Jev cannot be reached or the `TYPESAFE_API_KEY` organisation secret is missing: it never
-  guesses a tier. The workflow summary names the model version and also shows the tier that path rules alone give
-  (tests, docs, build logic and synced files T0, everything else T1).
+  main source files (T2 paths first, up to about 15k tokens; tests, docs and build files are left out) and the T2
+  paths. It picks a tier against the tier descriptions of the rules below, with a probability per tier, and the
+  workflow takes the highest tier that reaches `round_up_at`, so an unsure answer rounds up. Jev also answers whether
+  the diff changes public API, as the rules define it, and whether it breaks users. Either at `diff_t2_at` or more
+  makes the pull request T2, and these answers never lower a tier. They are an early warning: the build's binary
+  compatibility check stays the definitive test for binary breaks. The `risk-tier` check fails when the declared tier
+  is lower than the classified one, and when Jev cannot be reached, the `TYPESAFE_API_KEY` organisation secret is
+  missing or the rules are invalid: it never guesses a tier. The workflow summary names the model version and the rule
+  files, and the tier that path rules alone give.
 
-  Some changes are T2 whatever Jev answers: a `type: breaking` label, "API or behaviour change: yes", or a changed file
-  in the repository's T2 areas. A repository lists those, and optionally extra T0 paths for the path-rule hint, in
-  `.github/risk-tiers.yml`, which is not synced:
+  The rules are in two TOML files with the same format:
 
-  ```yaml
-  t2:
-    - "inject/src/main/**"
-    - "http*/src/main/**"
-  t0:
-    - "benchmarks/**"
+  * `.github/risk-tiers.global.toml`, the rules for every repository. It is synced from this template, so change it
+    here.
+  * `.github/risk-tiers.toml`, optional and not synced, with one repository's additions. Values such as the model and
+    the thresholds replace the global ones, lists such as `paths` and `labels` are added to them, `description`
+    replaces a tier description and `add_description` appends to it.
+
+  Each tier has a `description`, which is what Jev reads, so classification is tuned by editing text. `paths` globs
+  (gitignore-style) give each file a tier hint, T2 first, then T1, then T0, else `default_tier`. Changes under a T2
+  path, or a pull request with one of the T2 `labels` (`type: breaking` by default) or "API or behaviour change: yes",
+  are T2 whatever Jev answers. For example, micronaut-core could have:
+
+  ```toml
+  [tiers.T2]
+  paths = ["inject/src/main/**", "core-processor/src/main/**", "http*/src/main/**"]
+  add_description = "In micronaut-core, any change to dependency injection or the HTTP server."
   ```
 
-  Prefer `src/main` globs over whole module directories, since a test change under a `t2` glob also becomes T2.
+  Prefer `src/main` globs over whole module directories, since a test change under a T2 path also becomes T2.
   `python3 .github/scripts/risk-tier.py replay <owner/repo> --since <date>` classifies past pull requests without
-  labelling them, and `--rules-only` uses the path rules instead of Jev, to compare.
+  labelling them (pass `--repository-rules` for a rules file that is not checked out), and `--rules-only` uses the
+  path rules instead of Jev, to compare.
 
   The labels are the classification of record, and Jev's tier is only a first guess. The AI reviewer double-checks
   it, and to reclassify a pull request the reviewer or a maintainer just relabels it, up or down. The workflow keeps

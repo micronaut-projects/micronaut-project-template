@@ -4,12 +4,14 @@ on:
   push:
     paths:
       - ".github/scripts/risk-tier.py"
+      - ".github/risk-tiers.global.toml"
       - ".github/scripts/test_risk_tier.py"
       - ".github/PULL_REQUEST_TEMPLATE.md"
   pull_request:
     paths:
       - ".github/workflows/risk-tier-tests.yml"
       - ".github/scripts/risk-tier.py"
+      - ".github/risk-tiers.global.toml"
       - ".github/scripts/test_risk_tier.py"
       - ".github/PULL_REQUEST_TEMPLATE.md"
 
@@ -42,4 +44,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
-        run: python3 .github/scripts/risk-tier.py --config .github/risk-tiers.yml event --dry-run
+        run: python3 .github/scripts/risk-tier.py event --dry-run
