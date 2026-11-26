@@ -117,7 +117,8 @@ class RulesTest(unittest.TestCase):
             self.assertEqual(rt.file_tier(path, loose), "T2", path)
         result = rt.compute([".github/risk-tiers.toml"], set(), "", loose, jev("T0", t0=1.0))
         self.assertEqual(result["tier"], "T2")
-        self.assertEqual(rt.file_tier(".github/workflows/ci.yml", loose), "T0")
+        self.assertEqual(rt.file_tier(".github/workflows/ci.yml", loose), "T2")
+        self.assertEqual(rt.file_tier(".github/ISSUE_TEMPLATE/bug.yaml", loose), "T0")
 
     def test_relabelling_cannot_lower_rule_changes(self):
         def fresh(paths):
@@ -129,6 +130,32 @@ class RulesTest(unittest.TestCase):
         self.assertEqual(rt.apply_override(other, "T0", ["a/src/main/A.java"])["tier"], "T0")
         renamed = fresh(["x.toml"])
         self.assertEqual(rt.apply_override(renamed, "T1", ["x.toml", ".github/workflows/risk-tier.yml"])["tier"], "T2")
+
+    def test_only_write_access_may_lower(self):
+        def fresh():
+            return rt.compute(["a/src/main/A.java"], set(), "", EMPTY, jev("T2", t2=1.0))
+        self.assertEqual(rt.apply_override(fresh(), "T0", ["a/src/main/A.java"], may_lower=False)["tier"], "T2")
+        self.assertEqual(rt.apply_override(fresh(), "T0", ["a/src/main/A.java"], may_lower=True)["tier"], "T0")
+        raised = rt.compute(["README.md"], set(), "", EMPTY, jev("T0", t0=1.0))
+        self.assertEqual(rt.apply_override(raised, "T2", ["README.md"], may_lower=False)["tier"], "T2")
+        workflow = fresh()
+        self.assertEqual(rt.apply_override(workflow, "T0", [".github/workflows/ci.yml"])["tier"], "T2")
+
+    def test_relabel_actor_and_permission(self):
+        events = [{"event": "labeled", "label": {"name": "risk-tier: T0"}, "actor": {"login": "a"}},
+                  {"event": "labeled", "label": {"name": "risk-tier: T0"}, "actor": {"login": "b"}}]
+        self.assertEqual(rt.relabel_actor(events, {"risk-tier: T0"}, "risk-tier: T0"), "b")
+        self.assertIsNone(rt.relabel_actor(events, set(), "risk-tier: T0"))
+
+        class Fake(rt.GitHub):
+            def request(self, method, path, data=None):
+                if "nobody" in path:
+                    raise rt.urllib.error.HTTPError(path, 404, "missing", {}, None)
+                return {"permission": "write", "role_name": "maintain"}, ""
+        github = Fake(None, "o/r")
+        self.assertEqual(github.permission("someone"), "maintain")
+        self.assertEqual(github.permission("nobody"), "none")
+        self.assertEqual(github.permission(None), "none")
 
     def test_bot_authors(self):
         self.assertEqual(rt.bot_author({"login": "renovate[bot]", "type": "Bot"}, EMPTY), "renovate[bot]")
@@ -188,7 +215,10 @@ class RulesTest(unittest.TestCase):
             self.assertEqual(major["tier"], "T2")
             sync = rt.classify({"user": {"login": "micronaut-build"}, "body": "Update common files"}, set(),
                                [{"filename": ".github/workflows/ci.yml"}, {"filename": "gradlew"}], EMPTY)
-            self.assertEqual(sync["tier"], "T0")
+            self.assertEqual(sync["tier"], "T2")
+            docs = rt.classify({"user": {"login": "micronaut-build"}, "body": "Update common files"}, set(),
+                               [{"filename": "MAINTAINING.md"}, {"filename": ".github/PULL_REQUEST_TEMPLATE.md"}], EMPTY)
+            self.assertEqual(docs["tier"], "T0")
             unreadable = rt.classify({"user": {"login": "renovate[bot]"}, "body": "no table"}, set(), files, EMPTY)
             self.assertEqual(unreadable["tier"], "T1")
             kept = rt.classify({"user": {"login": "someone"}, "body": ""}, set(), files, EMPTY, previous="T1")
@@ -284,15 +314,18 @@ class RulesTest(unittest.TestCase):
 class FileTierTest(unittest.TestCase):
     def test_defaults(self):
         self.assertEqual(rt.file_tier("src/main/docs/guide/index.adoc", EMPTY), "T0")
-        self.assertEqual(rt.file_tier(".github/workflows/gradle.yml", EMPTY), "T0")
+        self.assertEqual(rt.file_tier(".github/workflows/gradle.yml", EMPTY), "T2")
+        self.assertEqual(rt.file_tier(".github/release.yml", EMPTY), "T0")
         self.assertEqual(rt.file_tier("test-suite-kotlin/src/main/kotlin/A.kt", EMPTY), "T0")
-        self.assertEqual(rt.file_tier("gradlew", EMPTY), "T0")
+        self.assertEqual(rt.file_tier("gradlew", EMPTY), "T2")
         self.assertEqual(rt.file_tier("module/src/main/java/A.java", EMPTY), "T1")
         self.assertEqual(rt.file_tier("module/build.gradle", EMPTY), "T1")
 
     def test_version_catalog_is_t1(self):
         self.assertEqual(rt.file_tier("gradle/libs.versions.toml", EMPTY), "T1")
-        self.assertEqual(rt.file_tier("gradle/wrapper/gradle-wrapper.properties", EMPTY), "T0")
+        self.assertEqual(rt.file_tier("gradle/wrapper/gradle-wrapper.properties", EMPTY), "T2")
+        self.assertEqual(rt.file_tier("buildSrc/src/main/groovy/x.gradle", EMPTY), "T2")
+        self.assertEqual(rt.file_tier("settings.gradle", EMPTY), "T2")
 
     def test_repository_t2_wins(self):
         self.assertEqual(rt.file_tier("inject/src/main/java/A.java", CORE), "T2")
@@ -375,8 +408,14 @@ def jev(choice, t0=0.0, t1=0.0, t2=0.0, confidence=0.9):
 
 class JevTest(unittest.TestCase):
     def test_choice_sets_tier(self):
-        result = rt.compute(["a/src/main/A.java"], set(), body(tier="T0"), EMPTY, jev("T0", t0=0.9, t1=0.1))
+        result = rt.compute(["README.md"], set(), body(tier="T0"), EMPTY, jev("T0", t0=0.9, t1=0.1))
         self.assertEqual(result["tier"], "T0")
+
+    def test_path_rules_are_a_floor(self):
+        result = rt.compute(["a/src/main/A.java"], set(), body(tier="T1"), EMPTY, jev("T0", t0=0.95, t1=0.05))
+        self.assertEqual(result["tier"], "T1")
+        self.assertIn("raised to T1 by the path rules", result["reasons"][-1])
+        self.assertEqual(rt.compute(["a/src/main/A.java"], set(), "", EMPTY, jev("T2", t2=1.0))["tier"], "T2")
         self.assertEqual(result["rules_tier"], "T1")
         self.assertFalse(result["declared_too_low"])
 

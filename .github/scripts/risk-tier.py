@@ -101,6 +101,14 @@ REPOSITORY_RULES = ".github/risk-tiers.toml"
 # Changing how pull requests are tiered is itself T2: the rules, the classifier and its workflow. These paths are T2
 # in every repository, and no rules file can remove them.
 CLASSIFIER_PATHS = [GLOBAL_RULES, REPOSITORY_RULES, ".github/scripts/risk-tier.py", ".github/workflows/risk-tier.yml"]
+# What CI, releases and the build run: a change here can reach secrets or published artifacts without touching main
+# sources. T2 in every repository too, including updates by bots such as Renovate.
+SUPPLY_CHAIN_PATHS = [".github/workflows/**", ".github/actions/**", ".github/scripts/**", ".github/CODEOWNERS",
+                      "buildSrc/**", "gradle/wrapper/**", "gradlew", "gradlew.bat", "settings.gradle",
+                      "settings.gradle.kts"]
+PROTECTED_PATHS = CLASSIFIER_PATHS + SUPPLY_CHAIN_PATHS
+# Repository permissions that may relabel a pull request to a lower tier. Anyone who can label may raise it.
+LOWERING_PERMISSIONS = {"admin", "maintain", "write"}
 
 DECLARATION_FIELDS = {
     "ai_use": ("ai use", AI_USES),
@@ -215,7 +223,7 @@ def load_rules(global_path=GLOBAL_RULES, repository_path=REPOSITORY_RULES):
 
 def tier_paths(rules, tier):
     paths = rules["tiers"][tier].get("paths", [])
-    return CLASSIFIER_PATHS + [path for path in paths if path not in CLASSIFIER_PATHS] if tier == "T2" else paths
+    return PROTECTED_PATHS + [path for path in paths if path not in PROTECTED_PATHS] if tier == "T2" else paths
 
 
 def file_tier(path, rules):
@@ -425,6 +433,9 @@ def compute(paths, labels, body, rules, jev=None, fixed=None):
             if probability is not None and probability >= rules["jev"]["diff_t2_at"] and tier != "T2":
                 tier = "T2"
                 reasons.append(f"Jev reads the diff as one that {what} ({probability:.0%})")
+        if TIERS.index(rules_tier) > TIERS.index(tier):
+            tier = rules_tier
+            reasons.append(f"raised to {tier} by the path rules, which Jev can raise but not lower")
     t2_files = [path for path in paths if matches_any(path, tier_paths(rules, "T2"))]
     if t2_files and tier != "T2":
         tier = "T2"
@@ -595,15 +606,21 @@ def workflow_tier(events, labels, workflow_actor=WORKFLOW_ACTOR):
     return None
 
 
-def apply_override(result, tier_override, paths):
-    """Applies a tier label that a reviewer or maintainer set, up or down, except below T2 for a pull request that
-    changes the rules, the classifier or its workflow: those stay T2 whoever relabels them, so that nothing that
-    treats lower tiers more lightly, such as auto-merge, can be reached by changing how tiers are computed."""
+def apply_override(result, tier_override, paths, may_lower=True):
+    """Applies a tier label that someone other than this workflow set. Anyone who can label may raise the tier; only
+    people with write access (``may_lower``) may lower it, and never below T2 for a pull request that changes the
+    rules, the classifier, workflows or build logic (PROTECTED_PATHS). Nothing that treats lower tiers more lightly,
+    such as auto-merge, can then be reached by relabelling."""
     if not tier_override or tier_override == result["tier"]:
         return result
-    if tier_override != "T2" and any(matches_any(path, CLASSIFIER_PATHS) for path in paths):
-        result["reasons"].append(f"relabelled {tier_override}, which is ignored: changes to the risk tier rules or "
-                                 f"classifier are always T2")
+    lowering = TIERS.index(tier_override) < TIERS.index(result["tier"])
+    if lowering and not may_lower:
+        result["reasons"].append(f"relabelled {tier_override}, which is ignored: only people with write access may "
+                                 f"lower the tier")
+        return result
+    if tier_override != "T2" and any(matches_any(path, PROTECTED_PATHS) for path in paths):
+        result["reasons"].append(f"relabelled {tier_override}, which is ignored: changes to the risk tier rules, "
+                                 f"workflows or build logic are always T2")
         return result
     result["override"] = tier_override
     result["reasons"].append(f"relabelled {tier_override} by a reviewer or maintainer")
@@ -611,6 +628,15 @@ def apply_override(result, tier_override, paths):
     declared = result["declaration"]["risk_tier"]
     result["declared_too_low"] = declared is not None and TIERS.index(declared) < TIERS.index(tier_override)
     return result
+
+
+def relabel_actor(events, labels, name, workflow_actor=WORKFLOW_ACTOR):
+    """Who last added the label ``name``, or None."""
+    actor = None
+    for event in events:
+        if event.get("event") == "labeled" and (event.get("label") or {}).get("name") == name:
+            actor = (event.get("actor") or {}).get("login")
+    return actor if name in labels else None
 
 
 def relabelled(events, labels, family, workflow_actor=WORKFLOW_ACTOR):
@@ -673,6 +699,18 @@ class GitHub:
 
     def changed_files(self, number):
         return self.paginate(f"pulls/{number}/files")
+
+    def permission(self, login):
+        """A user's permission on the repository (admin, maintain, write, triage, read or none). When it cannot be
+        read, "none", so that the safe answer wins."""
+        if not login:
+            return "none"
+        try:
+            answer, _ = self.request("GET", f"collaborators/{urllib.parse.quote(login, safe='')}/permission")
+        except urllib.error.URLError as error:
+            print(f"::warning::Could not read the permission of {login}: {error}")
+            return "none"
+        return (answer or {}).get("role_name") or (answer or {}).get("permission") or "none"
 
     def download(self, url):
         """Downloads an artifact archive. GitHub answers with a redirect to signed storage, which must be fetched
@@ -827,7 +865,11 @@ def run_event(args):
         if os.environ.get("GITHUB_OUTPUT"):
             with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
                 output.write("save-state=true\n")
-    apply_override(result, relabelled(events, labels, TIER_LABELS), changed_paths(files))
+    tier_override = relabelled(events, labels, TIER_LABELS)
+    may_lower = True
+    if tier_override and TIERS.index(tier_override) < TIERS.index(result["tier"]):
+        may_lower = github.permission(relabel_actor(events, labels, TIER_LABELS[tier_override])) in LOWERING_PERMISSIONS
+    apply_override(result, tier_override, changed_paths(files), may_lower)
     wanted = {TIER_LABELS[result["tier"]]}
     ai_use = relabelled(events, labels, AI_LABELS) or result["declaration"]["ai_use"]
     if ai_use:

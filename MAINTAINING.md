@@ -157,10 +157,17 @@ A row that still lists several options, or is missing, counts as not declared.
   paths = ["inject/src/main/**", "core-processor/src/main/**", "http*/src/main/**"]
   ```
 
-  Changing how pull requests are tiered is itself T2: `.github/risk-tiers.global.toml`, `.github/risk-tiers.toml`,
-  `.github/scripts/risk-tier.py` and `.github/workflows/risk-tier.yml` are T2 paths in every repository. No rules
-  file can remove them, relabelling cannot lower such a pull request, and a pull request's own copies of these files
-  never classify it: the workflow runs the base branch's script and the template's global rules.
+  Some paths are T2 in every repository, for people and bots alike: the tier rules and classifier
+  (`.github/risk-tiers.global.toml`, `.github/risk-tiers.toml`, `.github/scripts/risk-tier.py`,
+  `.github/workflows/risk-tier.yml`), and what CI, releases and the build run (`.github/workflows/**`,
+  `.github/actions/**`, `.github/scripts/**`, `.github/CODEOWNERS`, `buildSrc/**`, `gradle/wrapper/**`, `gradlew*`,
+  `settings.gradle*`). No rules file can remove them, and a pull request's own copies of these files never classify
+  it: the workflow runs the base branch's script and the template's global rules. Renovate updates to GitHub Actions
+  or the Gradle wrapper are therefore T2.
+
+  Jev can raise the tier the path rules give, but not lower it: main sources stay at least T1 whatever it answers.
+  Anyone who can label may relabel a pull request to a higher tier. Only people with write access may relabel it
+  lower, and never below T2 when it touches the paths above.
 
   Prefer `src/main` globs over whole module directories, since a test change under a T2 path also becomes T2.
   `python3 .github/scripts/risk-tier.py replay <owner/repo> --since <date>` classifies past pull requests without
