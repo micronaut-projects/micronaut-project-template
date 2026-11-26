@@ -308,3 +308,10 @@ jobs:
           else
             echo "Checks failed, were cancelled, or timed out; leaving PR open."
           fi
+      # Last, so that a failure here never holds back the files sync pull request. Needs admin on the repository.
+      - name: Sync rulesets
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          REPO: micronaut-projects/micronaut-${{ matrix.repo }}
+        run: source/.github/scripts/sync-rulesets.sh "$REPO" source/.github/rulesets.json
+        shell: bash
