@@ -226,8 +226,9 @@ All Micronaut repos have 2 dependency upgrade checking mechanism:
    is different. To keep that down, the synced `.github/renovate.json` groups Gradle and Maven updates by kind: one
    pull request for all patch updates, which merges itself once its checks pass, and one pull request per Maven group
    ID for minor updates, so unrelated libraries never ship together. Those need a maintainer's review. Patch updates
-   of 0.x versions go with the minor updates of their group ID. Major updates and Micronaut modules still get their
-   own pull requests, and GitHub Actions keep their own groups.
+   of 0.x versions go with the minor updates of their group ID. Major updates are also grouped per group ID, in pull
+   requests separate from the minor ones, since a library family usually has to move to a new major at once.
+   Micronaut modules keep their own group, and so do GitHub Actions.
 
 2. To overcome those disadvantages, we have our own dependency upgrade solution based on the
    [Gradle Use Latest Versions Plugin](https://github.com/patrikerdes/gradle-use-latest-versions-plugin). It runs daily

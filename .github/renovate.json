@@ -66,10 +66,17 @@
       "groupSlug": "minor-{{{replace ':.*' '' packageName}}}"
     },
     {
+      "matchManagers": ["gradle", "maven"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "{{{replace ':.*' '' packageName}}} major updates",
+      "groupSlug": "{{{replace ':.*' '' packageName}}}"
+    },
+    {
       "matchPackageNames": [
         "/.*micronaut.*/"
       ],
-      "groupName": "Micronaut dependencies"
+      "groupName": "Micronaut dependencies",
+      "groupSlug": "micronaut-dependencies"
     }
   ]
 }
