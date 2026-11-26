@@ -221,6 +221,7 @@ jobs:
       - name: Sleep for 3 minutes to avoid rate limiting
         run: sleep 180s
         shell: bash
+      # sync-automerge.yml merges the pull request once its checks pass.
       - name: Create Pull Request - ${{ steps.branch.outputs.branch }}
         id: cpr
         uses: peter-evans/create-pull-request@3ffccacd46053766916f087ce41d627c0b8cf2d1 # v8
@@ -256,68 +257,3 @@ jobs:
             config/spotless.license.java
             config/checkstyle/checkstyle.xml
             config/checkstyle/suppressions.xml
-      - name: Wait for CI and merge if green
-        if: steps.cpr.outputs.pull-request-number != ''
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          PR_URL: ${{ steps.cpr.outputs.pull-request-url }}
-        run: |
-          set -euo pipefail
-
-          head_sha="$(gh pr view "${PR_URL}" --json headRefOid --jq '.headRefOid')"
-
-          echo "Waiting for checks to appear..."
-          for i in {1..30}; do
-            check_count="$(gh pr checks "${PR_URL}" --json name --jq 'length' 2>/dev/null || echo 0)"
-            if [ "${check_count}" -gt 0 ]; then
-              break
-            fi
-            sleep 10
-          done
-
-          if [ "${check_count}" -eq 0 ]; then
-            echo "No checks appeared for ${PR_URL}; leaving PR open."
-            exit 0
-          fi
-
-          # Most repositories have no required checks, and then `gh pr checks --required` fails at once with "no
-          # required checks reported", which left every sync pull request open. Wait for the required checks when
-          # the branch has any, and for all checks otherwise.
-          required_count="$(gh pr checks "${PR_URL}" --required --json name --jq 'length' 2>/dev/null || echo 0)"
-          scope=()
-          if [ "${required_count:-0}" -gt 0 ]; then
-            scope=(--required)
-            echo "Waiting for ${required_count} required checks..."
-          else
-            echo "No required checks on this branch; waiting for all checks..."
-          fi
-          if gh pr checks "${PR_URL}" "${scope[@]}" --watch --fail-fast --interval 30; then
-            echo "Checks passed; merging ${PR_URL}."
-            # The merge can still be refused, e.g. when the target repository requires
-            # checks that gh does not consider "required", or when the head moved.
-            # That is not a failure of this workflow: leave the PR for a maintainer.
-            # Anything else (auth, rate limit, an API outage) must still fail the job.
-            if merge_log="$(gh pr merge "${PR_URL}" \
-              --squash \
-              --delete-branch \
-              --match-head-commit "${head_sha}" 2>&1)"; then
-              echo "Merged ${PR_URL}."
-            else
-              echo "${merge_log}"
-              case "${merge_log}" in
-                *"review"*)
-                  echo "${PR_URL} needs an approving review that micronaut-build cannot give; leaving it open. Add micronaut-build to the bypass list of the repository's pull request rule to merge sync pull requests automatically."
-                  ;;
-                *"not mergeable"*|*"not in the correct state"*|*"head commit"*|*"has changed"*)
-                  echo "${PR_URL} cannot be merged right now; leaving it open for a maintainer."
-                  ;;
-                *)
-                  echo "::error::gh pr merge failed for ${PR_URL} for an unexpected reason."
-                  exit 1
-                  ;;
-              esac
-            fi
-          else
-            echo "Checks failed, were cancelled, or timed out; leaving PR open."
-          fi
