@@ -25,12 +25,12 @@ run() {
   fi
 }
 
-# Comparable form of a ruleset: only the fields we manage, with arrays sorted, and the organisation admin actor id
-# GitHub reports as null.
+# Comparable form of a ruleset: only the fields we manage, with arrays sorted, without the null fields GitHub may add
+# to rules, and with the organisation admin actor id GitHub reports as null.
 normalize='{target, enforcement, conditions,
   bypass_actors: ((.bypass_actors // []) | map(if .actor_type == "OrganizationAdmin" then .actor_id = null else . end)
     | sort_by(.actor_type, .actor_id)),
-  rules: ((.rules // []) | sort_by(.type))}'
+  rules: ((.rules // []) | map(with_entries(select(.value != null))) | sort_by(.type))}'
 
 default_branch=$(gh api "repos/$repo" --jq .default_branch)
 existing=$(gh api "repos/$repo/rulesets?includes_parents=false&per_page=100" \
