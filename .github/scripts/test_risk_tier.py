@@ -181,7 +181,7 @@ class RulesTest(unittest.TestCase):
     def test_input_unchanged(self):
         self.assertTrue(rt.input_unchanged({"action": "labeled", "label": {"name": "risk-tier: T1"}}, EMPTY))
         self.assertFalse(rt.input_unchanged({"action": "unlabeled", "label": {"name": "type: breaking"}}, EMPTY))
-        self.assertTrue(rt.input_unchanged({"action": "ready_for_review"}, EMPTY))
+        self.assertFalse(rt.input_unchanged({"action": "ready_for_review"}, EMPTY))
         self.assertTrue(rt.input_unchanged({"action": "edited", "changes": {"base": {}}}, EMPTY))
         self.assertFalse(rt.input_unchanged({"action": "edited", "changes": {"body": {}}}, EMPTY))
         self.assertFalse(rt.input_unchanged({"action": "synchronize"}, EMPTY))

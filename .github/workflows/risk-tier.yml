@@ -33,8 +33,11 @@ jobs:
     name: risk-tier
     # Label events caused by this workflow's own token do not start new runs, so the job only reacts
     # to label changes made by people or other automation.
+    # Draft pull requests are not classified: most pushes happen while a pull request is a draft, and it is
+    # classified once it is marked ready for review.
     if: >-
       github.repository_owner == 'micronaut-projects' &&
+      !github.event.pull_request.draft &&
       (!contains(fromJSON('["labeled","unlabeled"]'), github.event.action) ||
        startsWith(github.event.label.name, 'risk-tier: ') ||
        startsWith(github.event.label.name, 'ai-use: ') ||

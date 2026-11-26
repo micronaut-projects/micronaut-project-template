@@ -18,12 +18,13 @@ probability reaches ``round_up_at``, so an unsure answer rounds up. Two yes/no q
 the change touches public API and whether it breaks users: either at ``diff_t2_at`` or more makes the pull request T2.
 Those answers only ever raise the tier, since the diff is text its author controls.
 
-Bots never go to Jev. A Renovate pull request gets the tier of the update it makes, read from the table in its
+Draft pull requests are not classified at all: the workflow skips them, and classifies a pull request when it is
+marked ready for review. Bots never go to Jev. A Renovate pull request gets the tier of the update it makes, read from the table in its
 description (by default patch T0, minor T1, major T2, and the highest one when it groups several), and any other bot,
 such as micronaut-build's files sync, gets the tier of the path rules alone. Both are listed in ``[bots]``.
 
 Jev is asked once per run, with all three questions in one request, and only when something it reads may have
-changed: on a label change, a reopen, ready for review, or an edit that leaves the title and description as they
+changed: on a label change, a reopen, or an edit that leaves the title and description as they
 were, the tier this workflow labelled last time is kept.
 
 Some facts always make a pull request T2, whatever Jev answers: a changed file that matches a T2 path, a T2 label such
@@ -530,7 +531,9 @@ def ask_jev(state, api_key, rules, url=JEV_URL, opener=urllib.request.urlopen):
 
 
 # Events that change nothing Jev reads (the title, description, labels other than T2 ones, and the diff).
-UNCHANGED_INPUT_ACTIONS = {"labeled", "unlabeled", "ready_for_review", "reopened"}
+# ready_for_review is not one of them: drafts are not classified, so the pull request may have changed since the last
+# tier was labelled.
+UNCHANGED_INPUT_ACTIONS = {"labeled", "unlabeled", "reopened"}
 
 
 def input_unchanged(event, rules):
