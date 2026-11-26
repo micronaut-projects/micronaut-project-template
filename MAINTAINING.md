@@ -313,11 +313,16 @@ will kick off, performing the following steps:
 
 * Pre-release: sets the `projectVersion` property in `gradle.properties` to the release version, and commit and pushes
   the result.
-* Generates documentation guide and publishes it to the `gh-pages` branch.
-* Sends a pull request to Core to update the BOM.
-* Post-release:
+* Builds the documentation guide, then publishes the artifacts to Maven Central. A docs build failure stops the release
+  before anything is published.
+* After publishing, separate jobs publish the guide to the `gh-pages` branch, generate the SLSA provenance, attach
+  `artifacts.zip` to the release, and run post-release:
   * Determines the next patch version, and sets it as a `SNAPSHOT` version.
   * Closes the milestone that matches the release version, and creates a new one for the next patch.
+
+A red release run means the release was not published to Maven Central. A job that fails after publishing leaves the
+run green with a warning, and the run's summary lists the result of each step. Re-run that job on its own from the run
+page; post-release is not idempotent, so check the version and milestones before re-running it.
 
 If everything goes well, you now need to manually trigger the Maven Central publishing workflow via the GitHub UI.
 
