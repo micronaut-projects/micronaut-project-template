@@ -88,3 +88,44 @@ jobs:
           path: .risk-tier-state/state.json
           retention-days: 30
           if-no-files-found: error
+
+  review-policy:
+    name: review-policy
+    # Whether the pull request has the reviews its risk tier needs (see MAINTAINING.md, "Review policy"), checked once
+    # the labels are set. It runs whether the risk-tier job ran, failed or was skipped, so that a skipped run never
+    # reports a pass: it reads the labels the pull request carries. A cancelled run, superseded by a newer one, does
+    # not run it. Reviews re-run it through review-policy.yml, whose job has the same name, so the latest result counts.
+    needs: risk-tier
+    if: ${{ !cancelled() && github.repository_owner == 'micronaut-projects' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Reads reviews, and requests a review from the maintainers rotation.
+      pull-requests: write
+    steps:
+      - name: "📥 Checkout base branch"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # The base branch, never the pull request head.
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+          sparse-checkout: |
+            .github/scripts/risk-tier.py
+            .github/risk-tiers.toml
+            .github/CODEOWNERS
+            CODEOWNERS
+            docs/CODEOWNERS
+          sparse-checkout-cone-mode: false
+      - name: "📥 Fetch the global rules from the template"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: micronaut-projects/micronaut-project-template
+          ref: master
+          path: .risk-tier-template
+          persist-credentials: false
+          sparse-checkout: .github/risk-tiers.global.toml
+          sparse-checkout-cone-mode: false
+      - name: "👀 Check the reviews the tier needs"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 .github/scripts/risk-tier.py --rules .risk-tier-template/.github/risk-tiers.global.toml review --request

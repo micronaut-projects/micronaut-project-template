@@ -72,6 +72,14 @@ paths = []
 # Labels that make a pull request T2 whatever Jev answers.
 labels = ["type: breaking"]
 
+[review]
+# Who the review-policy check asks to review T1 and T2 pull requests, picking the one with the fewest open review
+# requests in the organisation. Their approval always counts; anyone else's counts when they have write access.
+maintainers = ["alvarosanchez", "dstepanov", "graemerocher", "sdelamo", "yawkat"]
+# Whether the review-policy check fails until a pull request has the reviews its tier needs, and requests them. A
+# repository turns it on in its own .github/risk-tiers.toml. While it is false the check only reports.
+enforce = false
+
 [bots]
 # Pull requests opened by bots are not sent to Jev. GitHub Apps (logins ending in [bot]) are bots, and so are these
 # accounts. A bot other than Renovate gets the tier of the path rules alone.

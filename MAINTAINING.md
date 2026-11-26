@@ -160,7 +160,7 @@ A row that still lists several options, or is missing, counts as not declared.
   Some paths are T2 in every repository, for people and bots alike: the tier rules and classifier
   (`.github/risk-tiers.global.toml`, `.github/risk-tiers.toml`, `.github/scripts/risk-tier.py`,
   `.github/workflows/risk-tier.yml`), and what CI, releases and the build run (`.github/workflows/**`,
-  `.github/actions/**`, `.github/scripts/**`, `.github/CODEOWNERS`, `buildSrc/**`, `gradle/wrapper/**`, `gradlew*`,
+  `.github/actions/**`, `.github/scripts/**`, `CODEOWNERS` in any of its three places, `buildSrc/**`, `gradle/wrapper/**`, `gradlew*`,
   `settings.gradle*`). No rules file can remove them, and a pull request's own copies of these files never classify
   it: the workflow runs the base branch's script and the template's global rules. Renovate updates to GitHub Actions
   or the Gradle wrapper are therefore T2.
@@ -181,6 +181,35 @@ A row that still lists several options, or is missing, counts as not declared.
 
 Every pull request gets an AI first pass before human review, reported as the "AI first pass" check. The AI reviewer
 comments and requests changes, but it never approves: approval stays with maintainers.
+
+### Review policy
+
+The `review-policy` check says whether a pull request has the reviews its tier needs. It runs in `risk-tier.yml` after
+the labels are set, and again in `review-policy.yml` on every submitted or dismissed review:
+
+* T0: no person's review. The AI first pass is enough, and the pull request may merge itself.
+* T1: one approval from a maintainer.
+* T2: one approval from a maintainer and, for each changed file that the repo's `CODEOWNERS` assigns, an approval from
+  one of its owners. Repos without `CODEOWNERS` need any maintainer.
+
+A maintainer is anyone in `[review] maintainers`, or anyone with write access to the repo. The list is in the global
+rules, and a repo's own rules can replace it. A change
+request from a maintainer blocks every tier until it is dismissed or followed by an approval. When no one has been asked
+to review a T1 or T2 pull request yet, the check requests the maintainer with the fewest open review requests in the
+organisation, never the author. GitHub requests code owners by itself, so a T2 pull request in a repo with `CODEOWNERS`
+goes to its owners.
+
+Only T2 areas go in `CODEOWNERS`, so that the rotation spreads the rest. Its owners are people, not teams: the
+workflow's token cannot read team membership, so any maintainer's approval covers a team's files. On a T2 pull request,
+the check notes changed files under the repo's T2 paths that `CODEOWNERS` leaves without an owner.
+
+A repo enforces the policy by setting `enforce = true` under `[review]` in its `.github/risk-tiers.toml`. Until then the
+check only reports what it would need, passes, and requests no one. Setting it in the global rules enforces it everywhere.
+
+An approval stays valid after later pushes, as with GitHub's own review rules. Like every required check that GitHub
+Actions reports, a pull request that adds a workflow with a job of the same name can report a pass of its own, so a
+maintainer who merges still reads the diff. Pull requests opened before the ruleset sync get the check on their next
+push, edit or label change.
 
 External contributors do not have to fill in the declaration. If it is left empty, the AI reviewer asks once and sets the
 tier itself, and the pull request is not blocked on the AI use field.
@@ -256,15 +285,17 @@ checks when the branch has any, all checks otherwise. Pull requests with failing
 run's summary lists them.
 
 Branch protection is synced like labels, from `.github/rulesets.json` in the template repo (not copied) through
-`.github/scripts/sync-rulesets.sh`, which also takes `--dry-run`. Each run creates or updates two repository rulesets:
+`.github/scripts/sync-rulesets.sh`, which also takes `--dry-run`. Each run creates or updates three repository rulesets:
 
 * "Micronaut branches" blocks deleting and force-pushing the default branch and every `x.y.x` branch.
 * "Micronaut required checks" requires `Java CI passed` and `license/cla` on the default branch. `Java CI passed` is
   the last job of the synced `gradle.yml`, and fails when any other Java CI job fails, so changing the JDK matrix never
   breaks the rule. The ruleset is only applied once the repo's `gradle.yml` has that job, so a repo whose sync pull
   request is not merged, or that keeps its own `gradle.yml`, is not blocked.
+* "Micronaut review policy" requires the `review-policy` check (see "Review policy") on the default branch, once the
+  repo's `risk-tier.yml` has that job. The check passes in repos that do not enforce the policy.
 
-Organisation and repository admins can bypass both. Other rulesets and classic branch protection rules of a repo are
+Organisation and repository admins can bypass all three. Other rulesets and classic branch protection rules of a repo are
 left alone, and the strictest rule applies. Managing rulesets needs admin on the repo, so the `GH_TOKEN` of the files
 sync needs it too.
 
