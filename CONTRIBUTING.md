@@ -57,6 +57,10 @@ Once you are satisfied with your changes:
 - Push your changes to your remote branch on GitHub
 - Send us a [pull request](https://help.github.com/articles/creating-a-pull-request)
 
+The pull request template asks you to declare whether and how you used AI, the risk tier of the change, and whether it
+changes public API or behaviour. See [Risk tiers and AI disclosure](MAINTAINING.md#risk-tiers-and-ai-disclosure) for
+what each value means. If you are not sure, leave the declaration as it is and a maintainer will fill it in.
+
 ## Merging a pull request
 
 Before we merge a PR into a module's `master` branch, we have to consider:

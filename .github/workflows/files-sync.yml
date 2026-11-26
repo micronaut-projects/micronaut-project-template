@@ -173,6 +173,7 @@ jobs:
           done <<< "$FILES"
         env:
           FILES: |-
+            .claude/settings.json
             .clineignore
             .editorconfig
             .gitattributes
@@ -181,10 +182,12 @@ jobs:
             .github/release.yml
             .github/scripts/vulnerability-audit.sh
             .github/scripts/vulnerability-audit-filter.py
+            .github/scripts/risk-tier.py
             .github/ISSUE_TEMPLATE/bug_report.yaml
             .github/ISSUE_TEMPLATE/config.yml
             .github/ISSUE_TEMPLATE/new_feature.yaml
             .github/ISSUE_TEMPLATE/other.yaml
+            .github/PULL_REQUEST_TEMPLATE.md
             .sdkmanrc
             gradle/wrapper/gradle-wrapper.jar
             gradle/wrapper/gradle-wrapper.properties
@@ -233,6 +236,7 @@ jobs:
           branch: sync-files-${{ steps.branch.outputs.branch }}
           base: ${{ steps.branch.outputs.branch }}
           add-paths: |
+            .claude/settings.json
             .clineignore
             .editorconfig
             .gitattributes

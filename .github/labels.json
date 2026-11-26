@@ -283,6 +283,6 @@
   {
     "name": "risk-tier: T2",
     "color": "b60205",
-    "description": "Public API, inject, core-processor, serialization, security, HTTP, or breaking"
+    "description": "Public API, default behaviour, the repository's sensitive areas, or breaking"
   }
 ]
