@@ -132,7 +132,7 @@ A row that still lists several options, or is missing, counts as not declared.
   takes the highest of its updates (`[bots.renovate] update_tiers`). Any other bot, such as micronaut-build's files
   sync or a GitHub App, gets the tier of the path rules alone. Jev is asked once per run, with all its questions in one
   request, and not again while the title, the description and the set of changed files stay the same: its last answer
-  is kept in the Actions cache, so a push that only edits files the pull request already changed reuses it. After a
+  is kept in a workflow artifact for 30 days, so a push that only edits files the pull request already changed reuses it. After a
   push the workflow waits `debounce_seconds` (3 minutes by default, 0 turns it off) before asking Jev, and a newer push
   cancels the waiting run, so a burst of pushes costs one call. The check stays pending during the wait.
 
@@ -156,6 +156,18 @@ A row that still lists several options, or is missing, counts as not declared.
   anything breaking."""
   paths = ["inject/src/main/**", "core-processor/src/main/**", "http*/src/main/**"]
   ```
+
+  Some paths are T2 in every repository, for people and bots alike: the tier rules and classifier
+  (`.github/risk-tiers.global.toml`, `.github/risk-tiers.toml`, `.github/scripts/risk-tier.py`,
+  `.github/workflows/risk-tier.yml`), and what CI, releases and the build run (`.github/workflows/**`,
+  `.github/actions/**`, `.github/scripts/**`, `.github/CODEOWNERS`, `buildSrc/**`, `gradle/wrapper/**`, `gradlew*`,
+  `settings.gradle*`). No rules file can remove them, and a pull request's own copies of these files never classify
+  it: the workflow runs the base branch's script and the template's global rules. Renovate updates to GitHub Actions
+  or the Gradle wrapper are therefore T2.
+
+  Jev can raise the tier the path rules give, but not lower it: main sources stay at least T1 whatever it answers.
+  Anyone who can label may relabel a pull request to a higher tier. Only people with write access may relabel it
+  lower, and never below T2 when it touches the paths above.
 
   Prefer `src/main` globs over whole module directories, since a test change under a T2 path also becomes T2.
   `python3 .github/scripts/risk-tier.py replay <owner/repo> --since <date>` classifies past pull requests without
