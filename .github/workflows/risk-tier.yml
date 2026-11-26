@@ -44,6 +44,8 @@ jobs:
        github.event.label.name == 'type: breaking')
     runs-on: ubuntu-latest
     permissions:
+      # Reads the artifact that keeps Jev's last answer.
+      actions: read
       contents: read
       pull-requests: write
     steps:
@@ -68,14 +70,6 @@ jobs:
           persist-credentials: false
           sparse-checkout: .github/risk-tiers.global.toml
           sparse-checkout-cone-mode: false
-      - name: "📦 Restore Jev's last answer"
-        # Saved by an earlier run for this pull request, and reused while the title, description and set of changed
-        # files are the same. Only this workflow writes these caches: pull request code never runs here.
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        with:
-          path: .risk-tier-state
-          key: risk-tier-${{ github.event.pull_request.number }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: risk-tier-${{ github.event.pull_request.number }}-
       - name: "🏷 Compute and label the risk tier"
         id: classify
         env:
@@ -83,9 +77,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
         run: python3 .github/scripts/risk-tier.py --rules .risk-tier-template/.github/risk-tiers.global.toml event
-      - name: "📦 Save Jev's answer"
+      - name: "📦 Keep Jev's answer for the next run"
+        # The next run reads the newest artifact of this name that a pull_request_target run of this workflow
+        # uploaded, and reuses the answer while the title, description and set of changed files are the same. The
+        # Actions cache cannot be written from pull_request_target.
         if: always() && steps.classify.outputs.save-state == 'true'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          path: .risk-tier-state
-          key: risk-tier-${{ github.event.pull_request.number }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: risk-tier-state-${{ github.event.pull_request.number }}
+          path: .risk-tier-state/state.json
+          retention-days: 30
+          if-no-files-found: error

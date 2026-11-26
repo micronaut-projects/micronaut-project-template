@@ -208,6 +208,39 @@ class RulesTest(unittest.TestCase):
         finally:
             rt.ask_jev, rt.time.sleep = original_ask, original_sleep
 
+    def test_last_state_only_trusts_this_workflow(self):
+        import io as _io, zipfile as _zip
+        def archive(answer):
+            buffer = _io.BytesIO()
+            with _zip.ZipFile(buffer, "w") as zipped:
+                zipped.writestr("state.json", json.dumps({"fingerprint": "f", "answer": answer}))
+            return buffer.getvalue()
+
+        class Fake(rt.GitHub):
+            def __init__(self, artifacts, runs):
+                super().__init__(None, "o/r")
+                self.artifacts, self.runs = artifacts, runs
+
+            def request(self, method, path, data=None):
+                if path.startswith("actions/artifacts?name=risk-tier-state-7"):
+                    return {"artifacts": self.artifacts}, ""
+                return self.runs[int(path.rsplit("/", 1)[1])], ""
+
+            def download(self, url):
+                return archive(url)
+
+        artifacts = [
+            {"created_at": "2026-11-26T12:00:00Z", "workflow_run": {"id": 1}, "archive_download_url": "good"},
+            {"created_at": "2026-11-26T13:00:00Z", "workflow_run": {"id": 2}, "archive_download_url": "forged"},
+            {"created_at": "2026-11-26T14:00:00Z", "workflow_run": {"id": 3}, "archive_download_url": "old", "expired": True},
+        ]
+        runs = {1: {"event": "pull_request_target", "path": ".github/workflows/risk-tier.yml"},
+                2: {"event": "pull_request", "path": ".github/workflows/risk-tier.yml"},
+                3: {"event": "pull_request_target", "path": ".github/workflows/risk-tier.yml"}}
+        self.assertEqual(Fake(artifacts, runs).last_state(7)["answer"], "good")
+        self.assertIsNone(Fake(artifacts[1:2], runs).last_state(7))
+        self.assertIsNone(Fake([], runs).last_state(7))
+
     def test_debounce_is_validated(self):
         with self.assertRaisesRegex(ValueError, "debounce_seconds"):
             rt.validate_rules(rt.merge_rules(EMPTY, {"jev": {"debounce_seconds": -1}}))

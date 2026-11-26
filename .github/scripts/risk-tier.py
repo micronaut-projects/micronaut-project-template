@@ -24,7 +24,7 @@ description (by default patch T0, minor T1, major T2, and the highest one when i
 such as micronaut-build's files sync, gets the tier of the path rules alone. Both are listed in ``[bots]``.
 
 Jev is asked once per run, with all three questions in one request, and only when something it reads may have
-changed. The last answer is kept in the Actions cache with a fingerprint of the title, the description and the set
+changed. The last answer is kept in a workflow artifact with a fingerprint of the title, the description and the set
 of changed files, and reused while the fingerprint matches, so a push that only edits files the pull request already
 changed is not sent again. Without a cached answer, a label change, a reopen, or an edit that leaves the title and
 description as they were keeps the tier this workflow labelled last time. After a push, the script waits
@@ -51,6 +51,7 @@ Only the Python standard library (3.11 or later, for tomllib) is used.
 """
 import argparse
 import hashlib
+import io
 import json
 import os
 import re
@@ -60,6 +61,7 @@ import tomllib
 import urllib.error
 import urllib.parse
 import urllib.request
+import zipfile
 
 TIERS = ("T0", "T1", "T2")
 
@@ -609,6 +611,19 @@ def relabelled(events, labels, family, workflow_actor=WORKFLOW_ACTOR):
     return max(candidates)[1] if candidates else None
 
 
+STATE_WORKFLOW = ".github/workflows/risk-tier.yml"
+
+
+def state_artifact(number):
+    """The name of the artifact that keeps Jev's last answer for a pull request (see GitHub.last_state)."""
+    return f"risk-tier-state-{number}"
+
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+
 class GitHub:
     def __init__(self, token, repository, api_url="https://api.github.com"):
         self.token = token
@@ -640,6 +655,38 @@ class GitHub:
 
     def changed_files(self, number):
         return self.paginate(f"pulls/{number}/files")
+
+    def download(self, url):
+        """Downloads an artifact archive. GitHub answers with a redirect to signed storage, which must be fetched
+        without the GitHub token."""
+        request = urllib.request.Request(url)
+        request.add_header("Accept", "application/vnd.github+json")
+        if self.token:
+            request.add_header("Authorization", f"Bearer {self.token}")
+        opener = urllib.request.build_opener(NoRedirect)
+        try:
+            with opener.open(request) as response:
+                return response.read()
+        except urllib.error.HTTPError as error:
+            if error.code not in (301, 302, 303, 307, 308):
+                raise
+            with urllib.request.urlopen(error.headers["Location"]) as response:
+                return response.read()
+
+    def last_state(self, number, workflow_path=STATE_WORKFLOW):
+        """Jev's last answer for a pull request, from the newest state artifact that a pull_request_target run of
+        the risk tier workflow uploaded. Artifacts of other runs are ignored, since workflows from pull requests can
+        upload artifacts of the same name."""
+        artifacts, _ = self.request("GET", f"actions/artifacts?name={state_artifact(number)}&per_page=20")
+        for artifact in sorted(artifacts.get("artifacts", []), key=lambda a: a.get("created_at", ""), reverse=True):
+            if artifact.get("expired"):
+                continue
+            run, _ = self.request("GET", f"actions/runs/{artifact['workflow_run']['id']}")
+            if run.get("event") != "pull_request_target" or not run.get("path", "").startswith(workflow_path):
+                continue
+            with zipfile.ZipFile(io.BytesIO(self.download(artifact["archive_download_url"]))) as archive:
+                return json.loads(archive.read("state.json"))
+        return None
 
 
     def events(self, number):
@@ -741,13 +788,16 @@ def run_event(args):
     labels = {label["name"] for label in pull_request.get("labels", [])}
     events = github.events(number)
     previous = workflow_tier(events, labels) if input_unchanged(event, rules) else None
-    # The last answer of Jev, restored by the workflow from the Actions cache, and saved there again when Jev answers.
+    # Jev's last answer, kept in an artifact of an earlier run. The Actions cache cannot be written from
+    # pull_request_target. Reading it is only a saving: when it fails, Jev is asked again.
     state_dir = os.environ.get("RISK_TIER_STATE")
     state_path = os.path.join(state_dir, "state.json") if state_dir else None
     cache = None
-    if state_path and os.path.isfile(state_path):
-        with open(state_path, encoding="utf-8") as state_file:
-            cache = json.load(state_file)
+    if state_path:
+        try:
+            cache = github.last_state(number)
+        except (urllib.error.URLError, zipfile.BadZipFile, KeyError, ValueError) as error:
+            print(f"::warning::Could not read Jev's last answer, so Jev is asked again: {error}")
     # A burst of pushes costs one call: the workflow cancels this run when another push arrives during the wait.
     wait = rules["jev"].get("debounce_seconds", 0) if event.get("action") == "synchronize" and not args.dry_run else 0
     result = classify(pull_request, labels, github.changed_files(number), rules, previous=previous, cache=cache,

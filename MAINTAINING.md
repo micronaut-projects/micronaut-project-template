@@ -132,7 +132,7 @@ A row that still lists several options, or is missing, counts as not declared.
   takes the highest of its updates (`[bots.renovate] update_tiers`). Any other bot, such as micronaut-build's files
   sync or a GitHub App, gets the tier of the path rules alone. Jev is asked once per run, with all its questions in one
   request, and not again while the title, the description and the set of changed files stay the same: its last answer
-  is kept in the Actions cache, so a push that only edits files the pull request already changed reuses it. After a
+  is kept in a workflow artifact for 30 days, so a push that only edits files the pull request already changed reuses it. After a
   push the workflow waits `debounce_seconds` (3 minutes by default, 0 turns it off) before asking Jev, and a newer push
   cancels the waiting run, so a burst of pushes costs one call. The check stays pending during the wait.
 
