@@ -255,6 +255,19 @@ checks when the branch has any, all checks otherwise. Pull requests with failing
 (for example one requiring an approving review that micronaut-build cannot bypass), stay open for a maintainer, and the
 run's summary lists them.
 
+Branch protection is synced like labels, from `.github/rulesets.json` in the template repo (not copied) through
+`.github/scripts/sync-rulesets.sh`, which also takes `--dry-run`. Each run creates or updates two repository rulesets:
+
+* "Micronaut branches" blocks deleting and force-pushing the default branch and every `x.y.x` branch.
+* "Micronaut required checks" requires `Java CI passed` and `license/cla` on the default branch. `Java CI passed` is
+  the last job of the synced `gradle.yml`, and fails when any other Java CI job fails, so changing the JDK matrix never
+  breaks the rule. The ruleset is only applied once the repo's `gradle.yml` has that job, so a repo whose sync pull
+  request is not merged, or that keeps its own `gradle.yml`, is not blocked.
+
+Organisation and repository admins can bypass both. Other rulesets and classic branch protection rules of a repo are
+left alone, and the strictest rule applies. Managing rulesets needs admin on the repo, so the `GH_TOKEN` of the files
+sync needs it too.
+
 Regarding the Gradle wrapper, the template repo checks every week if there is a new Gradle version. If there is, it will
 upgrade the wrapper in the template repo itself, and via the files sync workflow this gets propagated to all repos. This
 way we make sure we stay up-to-date regarding Gradle versions in all repos.
