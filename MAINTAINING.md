@@ -249,7 +249,13 @@ and the alias is deleted. Other repo-specific labels are left alone. To rename a
 add the old name to its `aliases`. `labels.json` itself is not copied to other repos; the sync runs
 `.github/scripts/sync-labels.sh`, which takes `--dry-run`.
 
-Branch protection is synced the same way, from `.github/rulesets.json` in the template repo (not copied) through
+The sync opens an "Update common files" pull request in each repo. Every hour, `sync-automerge.yml` in the template repo
+squash-merges each one that targets the default branch and whose checks passed, whatever its risk tier: the required
+checks when the branch has any, all checks otherwise. Pull requests with failing checks, or that a branch rule refuses
+(for example one requiring an approving review that micronaut-build cannot bypass), stay open for a maintainer, and the
+run's summary lists them.
+
+Branch protection is synced like labels, from `.github/rulesets.json` in the template repo (not copied) through
 `.github/scripts/sync-rulesets.sh`, which also takes `--dry-run`. Each run creates or updates two repository rulesets:
 
 * "Micronaut branches" blocks deleting and force-pushing the default branch and every `x.y.x` branch.

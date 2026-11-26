@@ -5,3 +5,4 @@
 - template-cleanup.yml
 - skills-validation.yml
 - risk-tier-tests.yml
+- sync-automerge.yml

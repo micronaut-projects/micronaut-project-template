@@ -1,0 +1,80 @@
+name: Merge sync pull requests
+# Merges the "Update common files" pull requests that files-sync.yml opens, once their checks pass, whatever their
+# risk tier: they carry changes a maintainer already merged in this template. It runs hourly instead of waiting for
+# CI inside files-sync.yml, so a nightly sync never waits for every repository's build.
+#
+# A pull request is merged when micronaut-build opened it from a sync-files-* branch against the repository's default
+# branch, and every check on its head commit passed: the required checks when the branch has any, all checks
+# otherwise. Archived repositories are skipped. Pending checks are left for the next hour. Failing checks, a missing approving review or another
+# refusal leave the pull request open for a maintainer, and are listed in the job summary.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 * * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-automerge
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    if: github.repository == 'micronaut-projects/micronaut-project-template'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Merge sync pull requests whose checks passed
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          set -uo pipefail
+          summary="${GITHUB_STEP_SUMMARY:-/dev/null}"
+          echo "| Pull request | Result |" >> "${summary}"
+          echo "|---|---|" >> "${summary}"
+          note() { echo "$1: $2"; echo "| $1 | $2 |" >> "${summary}"; }
+
+          prs="$(gh search prs "Update common files" --owner micronaut-projects --author micronaut-build --state open \
+            --match title "Update common files" --limit 300 --json url --jq '.[].url')" || {
+            echo "::error::Could not search for sync pull requests."; exit 1; }
+
+          failed=0
+          for url in ${prs}; do
+            info="$(gh pr view "${url}" --json headRefName,headRefOid,baseRefName,author,isDraft \
+              --jq '[.headRefName, .headRefOid, .baseRefName, .author.login, (.isDraft|tostring)] | @tsv')" || {
+              note "${url}" "could not read"; failed=1; continue; }
+            IFS=$'\t' read -r head sha base author draft <<< "${info}"
+            repo="${url#https://github.com/}"; repo="${repo%/pull/*}"
+            repo_info="$(gh api "repos/${repo}" --jq '[.default_branch, (.archived|tostring)] | @tsv')" || {
+              note "${url}" "could not read repository"; failed=1; continue; }
+            IFS=$'\t' read -r default archived <<< "${repo_info}"
+            if [ "${archived}" = "true" ]; then note "${url}" "skipped: repository is archived"; continue; fi
+            if [ "${author}" != "micronaut-build" ] || [[ "${head}" != sync-files-* ]] || [ "${draft}" = "true" ]; then
+              note "${url}" "skipped: not a sync pull request"; continue
+            fi
+            if [ "${base}" != "${default}" ]; then
+              note "${url}" "skipped: targets ${base}, not the default branch ${default}"; continue
+            fi
+            if buckets="$(gh pr checks "${url}" --required --json bucket --jq '[.[].bucket]|join(" ")' 2>/dev/null)" && [ -n "${buckets}" ]; then
+              scope="required checks"
+            else
+              buckets="$(gh pr checks "${url}" --json bucket --jq '[.[].bucket]|join(" ")' 2>/dev/null || true)"
+              scope="checks"
+            fi
+            if [ -z "${buckets}" ]; then note "${url}" "waiting: no checks yet"; continue; fi
+            if [[ " ${buckets} " == *" pending "* ]]; then note "${url}" "waiting: ${scope} running"; continue; fi
+            if [[ " ${buckets} " == *" fail "* || " ${buckets} " == *" cancel "* ]]; then
+              note "${url}" "left open: ${scope} failed or were cancelled"; continue
+            fi
+            if log="$(gh pr merge "${url}" --squash --delete-branch --match-head-commit "${sha}" 2>&1)"; then
+              note "${url}" "merged"
+            else
+              case "${log}" in
+                *"review"*) note "${url}" "left open: needs an approving review; add micronaut-build to the bypass list of the repository's pull request rule" ;;
+                *"not mergeable"*|*"not in the correct state"*|*"head commit"*|*"has changed"*|*"conflict"*) note "${url}" "left open: cannot be merged now" ;;
+                *) note "${url}" "merge failed: ${log//$'\n'/ }"; failed=1 ;;
+              esac
+            fi
+          done
+          exit "${failed}"
