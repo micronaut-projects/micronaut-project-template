@@ -79,7 +79,10 @@
   {
     "name": "relates-to: graal",
     "color": "ffa347",
-    "description": ""
+    "description": "",
+    "aliases": [
+      "graal"
+    ]
   },
   {
     "name": "status: acknowledged",
@@ -164,6 +167,7 @@
     "color": "727ac9",
     "description": "Upgrade a dependency",
     "aliases": [
+      "dependency-upgrade",
       "dependencies"
     ]
   },

@@ -52,6 +52,8 @@ while IFS=$'\t' read -r name alias; do
     encoded=$(jq -rn --arg l "$actual_alias" '$l|@uri')
     for number in $(gh api --paginate "repos/$repo/issues?labels=$encoded&state=all&per_page=100" --jq '.[].number'); do
       run gh api -X POST "repos/$repo/issues/$number/labels" -f "labels[]=$name" --silent
+      # Stay under GitHub's secondary rate limit for writes; a run cut short resumes the next night.
+      [ "$dry_run" = "--dry-run" ] || sleep 1
     done
     run gh label delete "$actual_alias" --repo "$repo" --yes
   fi
