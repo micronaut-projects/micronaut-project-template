@@ -689,6 +689,9 @@ docs/** @micronaut-projects/docs
         self.assertEqual(rt.file_tier("docs/CODEOWNERS", EMPTY), "T2")
         self.assertEqual(rt.file_tier("project/CODEOWNERS", EMPTY), "T1")
 
+    def test_global_renovate_rules_are_t2(self):
+        self.assertEqual(rt.file_tier(".github/renovate-global.json", EMPTY), "T2")
+
     def test_latest_review_per_person_counts(self):
         reviews = [
             {"user": {"login": "sdelamo"}, "state": "CHANGES_REQUESTED"},

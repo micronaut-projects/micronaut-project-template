@@ -223,12 +223,21 @@ All Micronaut repos have 2 dependency upgrade checking mechanism:
 1. Renovate: it has the advantage that it performs dependency upgrades not only on build dependencies, but also on
    GitHub Actions workflows. On the other hand, its biggest downside is that it's unable to find newer versions for
    those defined in `gradle.properties`. It will also send different PRs for the same version upgrade if the artifact ID
-   is different. To keep that down, the synced `.github/renovate.json` groups Gradle and Maven updates by kind: one
+   is different. To keep that down, the shared rules group Gradle and Maven updates by kind: one
    pull request for all patch updates, which merges itself once its checks pass, and one pull request per Maven group
    ID for minor updates, so unrelated libraries never ship together. Those need a maintainer's review. Patch updates
    of 0.x versions go with the minor updates of their group ID. Major updates are also grouped per group ID, in pull
    requests separate from the minor ones, since a library family usually has to move to a new major at once.
    Micronaut modules keep their own group, and so do GitHub Actions.
+
+   The rules live in `.github/renovate-global.json`, only in this template and never synced. The synced
+   `.github/renovate.json` only extends it (`local>micronaut-projects/micronaut-project-template//.github/renovate-global`),
+   and Renovate reads the template's `master` on every run, so a merged change reaches every repository at its next
+   Renovate run. A repository that needs more keeps the `extends` line, adds its own settings after it, and keeps a
+   `.github/renovate.json.lock` beside the file so the sync leaves it alone. Its `packageRules` come after the shared
+   ones and win where both match, and its other settings replace the shared values, while later changes to the shared
+   rules still reach it. Repositories outside the files sync can use the same one-line file. Changes to the shared
+   rules are T2.
 
 2. To overcome those disadvantages, we have our own dependency upgrade solution based on the
    [Gradle Use Latest Versions Plugin](https://github.com/patrikerdes/gradle-use-latest-versions-plugin). It runs daily
@@ -265,7 +274,7 @@ template repo will get propagated automatically. The files propagated are:
   * `release.yml`.
   * `sonatype.yml`.
 
-* Renovate configuration (`.github/renovate.json`).
+* Renovate configuration (`.github/renovate.json`), which extends the template's shared rules.
 * Claude Code project settings (`.claude/settings.json`), which turn off Claude Code's pull request footer and
   commit session link, keeping the `Co-Authored-By` trailer. A repository that needs its own settings keeps a `.claude/settings.json.lock` beside the file.
 * Gradle wrapper.
