@@ -77,22 +77,6 @@ AI_LABELS = {use: f"ai-use: {use}" for use in AI_USES}
 # The login GITHUB_TOKEN acts as. Labels added by anyone else are reclassifications the script keeps.
 WORKFLOW_ACTOR = "github-actions[bot]"
 
-# Footers and banners that AI tools add to pull request descriptions. The review declaration already records AI use,
-# so the template asks for none of them, whichever agent or harness wrote the pull request.
-TOOL_FOOTER_PATTERNS = (
-    # Each pattern matches a whole footer line, so prose that mentions a footer does not match.
-    r"^[\s_*>]*(?:\U0001F916\s*)?generated (?:with|by) \[?(?:claude|codex|copilot|cursor|chatgpt|gemini|devin|openai|anthropic)",
-    r"^[\s_*>]*made with \[?cursor",
-    r"^\s*co-authored-by:.*(?:claude|anthropic|copilot|cursor|codex|openai|devin)",
-    r"^\s*<?https://claude\.ai/code/session_\S*>?\s*$",
-    r"^\s*\U0001F916",
-    r"^[\s_*>]*requested by .*project thread",
-)
-# Attribution left in HTML comments, which the other patterns do not see.
-TOOL_COMMENT_PATTERNS = (
-    r"<!--\s*claude-projects-attribution",
-)
-
 JEV_URL = "https://api.typesafe.ai/v1/systemone"
 JEV_MAX_BODY = 6000
 JEV_MAX_FILES = 300
@@ -290,15 +274,6 @@ def parse_declaration(body):
     return result
 
 
-def tool_footers(body):
-    """Returns the lines of a pull request body that look like an AI tool footer or banner, ignoring HTML comments."""
-    comments = [match.group(0).strip() for match in re.finditer(r"<!--.*?-->", body or "", flags=re.DOTALL)
-                if any(re.match(pattern, match.group(0), flags=re.IGNORECASE) for pattern in TOOL_COMMENT_PATTERNS)]
-    body = re.sub(r"<!--.*?-->", "", body or "", flags=re.DOTALL)
-    return comments + [line.strip() for line in body.splitlines()
-                       if any(re.search(pattern, line, flags=re.IGNORECASE) for pattern in TOOL_FOOTER_PATTERNS)]
-
-
 def bot_author(user, rules):
     """The login of a bot author, or None for a person. GitHub Apps such as renovate[bot] are bots, and so are the
     accounts listed in [bots] logins, such as micronaut-build."""
@@ -464,7 +439,6 @@ def compute(paths, labels, body, rules, jev=None, fixed=None):
         "reasons": reasons,
         "declaration": declaration,
         "override": None,
-        "footers": tool_footers(body),
         "declared_too_low": declaration["risk_tier"] is not None
         and TIERS.index(declaration["risk_tier"]) < TIERS.index(tier),
     }
@@ -825,9 +799,6 @@ def summary(result, warnings):
             f"Set the Risk tier in the review declaration to {result['tier']}.",
             "",
         ]
-    if result["footers"]:
-        lines += ["The description has AI tool footers or banners. Remove them: the review declaration already records "
-                  "AI use.", ""] + [f"- `{line}`" for line in result["footers"]] + [""]
     for tier in reversed(TIERS):
         files = result["files"][tier]
         if files:
@@ -890,10 +861,6 @@ def run_event(args):
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary_file:
             summary_file.write(text + "\n")
     failed = False
-    if result["footers"]:
-        print("::error title=AI tool footer in the description::Remove the tool footers or banners from the pull request "
-              "description. The review declaration already records AI use.")
-        failed = True
     if result["declared_too_low"]:
         failed = True
         print(f"::error title=Declared risk tier too low::The pull request declares {result['declaration']['risk_tier']}"
