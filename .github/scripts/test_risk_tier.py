@@ -98,6 +98,19 @@ class RulesTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "default_tier"):
             rt.validate_rules(rt.merge_rules(EMPTY, {"default_tier": "T5"}))
 
+    def test_state_fits_the_total_limit(self):
+        files = [{"filename": f"module{i}/src/main/java/io/micronaut/some/long/package/name/Class{i}.java",
+                  "status": "modified", "additions": 400, "deletions": 0,
+                  "patch": "@@ -1 +1 @@\n" + "\n".join(f'+    String s{j} = "\\"quoted\\" {j}";' for j in range(400))}
+                 for i in range(300)]
+        state = rt.jev_state("t", "x" * 10000, set(), files, EMPTY)
+        self.assertLessEqual(len(json.dumps(state)), rt.JEV_MAX_STATE)
+        self.assertTrue(state["changed_files"])
+        self.assertIn("main_source_diff_note", state)
+        small = rt.jev_state("t", "b", set(), files[:1], EMPTY)
+        self.assertNotIn("main_source_diff_note", small)
+        self.assertEqual(len(small["changed_files"]), 1)
+
     def test_questions_use_the_descriptions(self):
         rules = rt.merge_rules(EMPTY, {"tiers": {"T0": {"description": "Docs only."}}})
         questions = rt.jev_questions(rules)
