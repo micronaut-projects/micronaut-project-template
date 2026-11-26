@@ -249,6 +249,12 @@ and the alias is deleted. Other repo-specific labels are left alone. To rename a
 add the old name to its `aliases`. `labels.json` itself is not copied to other repos; the sync runs
 `.github/scripts/sync-labels.sh`, which takes `--dry-run`.
 
+The sync opens an "Update common files" pull request in each repo. Every hour, `sync-automerge.yml` in the template repo
+squash-merges each one that targets the default branch and whose checks passed, whatever its risk tier: the required
+checks when the branch has any, all checks otherwise. Pull requests with failing checks, or that a branch rule refuses
+(for example one requiring an approving review that micronaut-build cannot bypass), stay open for a maintainer, and the
+run's summary lists them.
+
 Regarding the Gradle wrapper, the template repo checks every week if there is a new Gradle version. If there is, it will
 upgrade the wrapper in the template repo itself, and via the files sync workflow this gets propagated to all repos. This
 way we make sure we stay up-to-date regarding Gradle versions in all repos.
