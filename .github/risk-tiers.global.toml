@@ -1,10 +1,9 @@
 # Risk tier rules for every Micronaut repository, read by .github/scripts/risk-tier.py.
 #
-# This file is synced from micronaut-project-template by the files sync workflow: edit it there. A repository adds
-# its own rules in .github/risk-tiers.toml, which is not synced and uses the same format. Values such as the model
-# and the thresholds in that file override the ones here, lists such as paths and labels are added to these,
-# `description` replaces a description and `add_description` appends to it. See MAINTAINING.md, "Risk tiers and AI
-# disclosure".
+# This file is not synced: the risk-tier workflow of every repository fetches it from the default branch of
+# micronaut-project-template on each run, so a change here applies everywhere once merged. A repository can have its
+# own .github/risk-tiers.toml in the same format, whose values overwrite these: tables merge key by key, and any other
+# value it sets, lists included, replaces the one here. See MAINTAINING.md, "Risk tiers and AI disclosure".
 #
 # The descriptions are what Jev reads to pick a tier, so the classification is tuned by editing them.
 # Globs are gitignore-style: `**` crosses directories, `*` does not, and a glob without `/` matches at any depth.
@@ -64,8 +63,7 @@ description = "Internal module code or dependency versions: published, but no pu
 paths = ["gradle/libs.versions.toml"]
 
 [tiers.T2]
-description = """Public API, dependency injection, annotation processing, serialization, security, HTTP, a change of \
-default behaviour, or anything breaking."""
+description = "Public API, a change of default behaviour, or anything breaking."
 # Files that make a pull request T2 whatever Jev answers. Repositories list their sensitive areas here.
 paths = []
 # Labels that make a pull request T2 whatever Jev answers.

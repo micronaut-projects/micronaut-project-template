@@ -55,19 +55,24 @@ class RulesTest(unittest.TestCase):
         self.assertIn("type: breaking", EMPTY["tiers"]["T2"]["labels"])
         self.assertEqual(EMPTY["sources"], [_GLOBAL])
 
-    def test_merge_adds_lists_and_replaces_values(self):
+    def test_repository_values_overwrite_global_ones(self):
         merged = rt.merge_rules(EMPTY, {"jev": {"diff_t2_at": 0.7}, "tiers": {"T2": {"paths": ["a/**"], "labels": ["x"]}}})
         self.assertEqual(merged["jev"]["diff_t2_at"], 0.7)
         self.assertEqual(merged["jev"]["model"], EMPTY["jev"]["model"])
         self.assertEqual(merged["tiers"]["T2"]["paths"], ["a/**"])
-        self.assertEqual(merged["tiers"]["T2"]["labels"], ["type: breaking", "x"])
+        self.assertEqual(merged["tiers"]["T2"]["labels"], ["x"])
+        self.assertEqual(merged["tiers"]["T2"]["description"], EMPTY["tiers"]["T2"]["description"])
         self.assertEqual(merged["tiers"]["T0"]["paths"], EMPTY["tiers"]["T0"]["paths"])
 
-    def test_add_description(self):
-        merged = rt.merge_rules(EMPTY, {"tiers": {"T2": {"add_description": "In core, anything under inject."}}})
-        self.assertTrue(merged["tiers"]["T2"]["description"].startswith(EMPTY["tiers"]["T2"]["description"]))
-        self.assertTrue(merged["tiers"]["T2"]["description"].endswith("In core, anything under inject."))
-        self.assertNotIn("add_description", merged["tiers"]["T2"])
+    def test_repository_can_loosen_global_rules(self):
+        merged = rt.merge_rules(EMPTY, {"tiers": {"T0": {"paths": ["docs/**"]}, "T2": {"labels": []}}})
+        self.assertEqual(merged["tiers"]["T0"]["paths"], ["docs/**"])
+        self.assertEqual(merged["tiers"]["T2"]["labels"], [])
+
+    def test_global_rules_name_no_module_areas(self):
+        description = EMPTY["tiers"]["T2"]["description"].lower()
+        for area in ("inject", "http", "security", "serialization"):
+            self.assertNotIn(area, description)
 
     def test_description_replaces(self):
         merged = rt.merge_rules(EMPTY, {"tiers": {"T1": {"description": "Anything else."}}})

@@ -6,7 +6,8 @@
 name: Risk tier
 # Labels each pull request with its risk tier (risk-tier: T0, T1 or T2), classified by TypeSafe's Jev model through
 # .github/scripts/risk-tier.py, and its AI use (ai-use: none, assisted or agent-generated) as declared. The rules are in
-# .github/risk-tiers.global.toml (synced) and the repository's own .github/risk-tiers.toml (optional, not synced). A
+# .github/risk-tiers.global.toml, fetched from micronaut-project-template's default branch on every run, overwritten by
+# the repository's own optional .github/risk-tiers.toml. A
 # change under a T2 path, a T2 label such as type: breaking, or a declared API change is always T2. Relabelling reclassifies a pull request: labels added by anyone else are kept. The check fails when the
 # tier declared in the pull request description is lower than the classified one, or when Jev cannot be reached. The
 # tiers are described in MAINTAINING.md, under "Risk tiers and AI disclosure".
@@ -51,11 +52,21 @@ jobs:
           persist-credentials: false
           sparse-checkout: |
             .github/scripts/risk-tier.py
-            .github/risk-tiers.global.toml
             .github/risk-tiers.toml
+          sparse-checkout-cone-mode: false
+      - name: "📥 Fetch the global rules from the template"
+        # Not synced: every repository reads the template's current rules, so a change there applies at once. The
+        # job fails if they cannot be fetched, instead of classifying without them.
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: micronaut-projects/micronaut-project-template
+          ref: master
+          path: .risk-tier-template
+          persist-credentials: false
+          sparse-checkout: .github/risk-tiers.global.toml
           sparse-checkout-cone-mode: false
       - name: "🏷 Compute and label the risk tier"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
-        run: python3 .github/scripts/risk-tier.py event
+        run: python3 .github/scripts/risk-tier.py --rules .risk-tier-template/.github/risk-tiers.global.toml event

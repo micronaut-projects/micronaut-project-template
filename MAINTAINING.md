@@ -110,7 +110,8 @@ A row that still lists several options, or is missing, counts as not declared.
 * **Risk tier**, which decides how much human review a pull request needs:
   * `T0`: build, docs, tests and synced files. Nothing published changes.
   * `T1`: internal module code.
-  * `T2`: public API, `inject`, `core-processor`, serialization, security, HTTP, or anything labelled `type: breaking`.
+  * `T2`: public API, a change of default behaviour, or anything labelled `type: breaking`, plus the sensitive areas
+    each repository names in its own rules, such as dependency injection and HTTP in micronaut-core.
 
   The "Risk tier" workflow (`.github/workflows/risk-tier.yml`) classifies every pull request with
   [TypeSafe's Jev model](https://docs.typesafe.ai) and sets a `risk-tier: T0`, `risk-tier: T1` or `risk-tier: T2`
@@ -127,11 +128,12 @@ A row that still lists several options, or is missing, counts as not declared.
 
   The rules are in two TOML files with the same format:
 
-  * `.github/risk-tiers.global.toml`, the rules for every repository. It is synced from this template, so change it
-    here.
-  * `.github/risk-tiers.toml`, optional and not synced, with one repository's additions. Values such as the model and
-    the thresholds replace the global ones, lists such as `paths` and `labels` are added to them, `description`
-    replaces a tier description and `add_description` appends to it.
+  * `.github/risk-tiers.global.toml`, the rules for every repository. It lives only in this template and is not
+    synced: the workflow fetches it from this repository's `master` on every run, so a merged change applies
+    everywhere at once, and the check fails if it cannot be fetched.
+  * `.github/risk-tiers.toml`, optional and kept in each repository, never synced. Its values overwrite the global
+    ones: tables merge key by key, and any other value it sets, lists included, replaces the global one. A repository
+    that sets `[tiers.T0] paths`, for example, must list every T0 glob it wants.
 
   Each tier has a `description`, which is what Jev reads, so classification is tuned by editing text. `paths` globs
   (gitignore-style) give each file a tier hint, T2 first, then T1, then T0, else `default_tier`. Changes under a T2
@@ -140,8 +142,9 @@ A row that still lists several options, or is missing, counts as not declared.
 
   ```toml
   [tiers.T2]
+  description = """Public API, dependency injection, annotation processing, HTTP, a change of default behaviour, or \
+  anything breaking."""
   paths = ["inject/src/main/**", "core-processor/src/main/**", "http*/src/main/**"]
-  add_description = "In micronaut-core, any change to dependency injection or the HTTP server."
   ```
 
   Prefer `src/main` globs over whole module directories, since a test change under a T2 path also becomes T2.

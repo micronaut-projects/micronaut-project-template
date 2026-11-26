@@ -183,7 +183,6 @@ jobs:
             .github/scripts/vulnerability-audit.sh
             .github/scripts/vulnerability-audit-filter.py
             .github/scripts/risk-tier.py
-            .github/risk-tiers.global.toml
             .github/ISSUE_TEMPLATE/bug_report.yaml
             .github/ISSUE_TEMPLATE/config.yml
             .github/ISSUE_TEMPLATE/new_feature.yaml

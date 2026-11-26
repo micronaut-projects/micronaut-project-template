@@ -5,11 +5,11 @@ The tiers are described in MAINTAINING.md, under "Risk tiers and AI disclosure":
 
 * T0: build, docs, tests and synced files. Nothing published changes.
 * T1: internal module code.
-* T2: public API, inject, core-processor, serialization, security, HTTP, or anything breaking.
+* T2: public API, a change of default behaviour, or anything breaking, plus each repository's sensitive areas.
 
-The rules live in two TOML files: ``.github/risk-tiers.global.toml``, synced to every repository from
-micronaut-project-template, and the repository's own optional ``.github/risk-tiers.toml``, merged on top of it (see
-merge_rules). They hold the tier descriptions Jev reads, the path globs, the T2 labels, the Jev model and thresholds.
+The rules live in two TOML files: ``.github/risk-tiers.global.toml``, which stays in micronaut-project-template and is
+fetched from its default branch on every run (it is not synced), and the repository's own optional
+``.github/risk-tiers.toml``, whose values overwrite the global ones (see merge_rules). They hold the tier descriptions Jev reads, the path globs, the T2 labels, the Jev model and thresholds.
 
 Jev (https://typesafe.ai) answers a ``choice`` question over T0, T1 and T2, whose criteria are the tier descriptions,
 given the pull request title, description, labels, changed files with their line counts, the changed lines of main
@@ -129,16 +129,12 @@ def matches_any(path, globs):
 
 
 def merge_rules(base, override):
-    """Merges the repository rules into the global ones: lists are added together, tables are merged, other values
-    are replaced, and ``add_description`` appends to ``description``."""
+    """Overwrites the global rules with the repository's: tables are merged key by key, and any other value the
+    repository sets, lists included, replaces the global one. A repository can therefore loosen a global rule too."""
     merged = dict(base)
     for key, value in override.items():
-        if key == "add_description":
-            merged["description"] = (merged.get("description", "") + " " + value).strip()
-        elif isinstance(value, dict) and isinstance(merged.get(key), dict):
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
             merged[key] = merge_rules(merged[key], value)
-        elif isinstance(value, list) and isinstance(merged.get(key), list):
-            merged[key] = merged[key] + [item for item in value if item not in merged[key]]
         else:
             merged[key] = value
     return merged
@@ -609,7 +605,8 @@ def run_replay(args):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n", 1)[0])
-    parser.add_argument("--rules", default=GLOBAL_RULES, help=f"global rules, default {GLOBAL_RULES}")
+    parser.add_argument("--rules", default=GLOBAL_RULES,
+                        help=f"global rules, default {GLOBAL_RULES}; the workflow passes the template's copy")
     parser.add_argument("--repository-rules", default=REPOSITORY_RULES,
                         help=f"repository rules, read when the file exists, default {REPOSITORY_RULES}")
     sub = parser.add_subparsers(dest="command", required=True)
