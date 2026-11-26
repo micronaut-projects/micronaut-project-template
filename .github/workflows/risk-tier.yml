@@ -4,12 +4,15 @@
 #
 # and edit them there. Note that it will be sync'ed to all the Micronaut repos
 name: Risk tier
-# Labels each pull request with its risk tier (risk-tier: T0, T1 or T2), computed from the changed paths by
-# .github/scripts/risk-tier.py, and its AI use (ai-use: none, assisted or agent-generated) as declared. Relabelling
-# reclassifies a pull request: labels added by anyone else are kept. The check
-# fails when the tier declared in the pull request description is lower than the computed one. The tiers are
-# described in MAINTAINING.md, under "Risk tiers and AI disclosure", and a repository lists its T2 paths in
-# .github/risk-tiers.yml, which is not synced.
+# Labels each pull request with its risk tier (risk-tier: T0, T1 or T2), classified by TypeSafe's Jev model through
+# .github/scripts/risk-tier.py, and its AI use (ai-use: none, assisted or agent-generated) as declared. Changes in the
+# repository's T2 areas (.github/risk-tiers.yml, not synced), the type: breaking label or a declared API change are
+# always T2. Relabelling reclassifies a pull request: labels added by anyone else are kept. The check fails when the
+# tier declared in the pull request description is lower than the classified one, or when Jev cannot be reached. The
+# tiers are described in MAINTAINING.md, under "Risk tiers and AI disclosure".
+#
+# Jev's API key is the TYPESAFE_API_KEY organisation secret. Jev receives the pull request title, description, labels
+# and changed file names with line counts, never the code.
 #
 # It runs on pull_request_target so that it can label pull requests from forks. It must never check out or run
 # pull request code: the checkout below is the base branch, and the changed paths come from the GitHub API.
@@ -53,4 +56,5 @@ jobs:
       - name: "🏷 Compute and label the risk tier"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
         run: python3 .github/scripts/risk-tier.py --config .github/risk-tiers.yml event

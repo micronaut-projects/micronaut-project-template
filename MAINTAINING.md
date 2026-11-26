@@ -112,12 +112,18 @@ A row that still lists several options, or is missing, counts as not declared.
   * `T1`: internal module code.
   * `T2`: public API, `inject`, `core-processor`, serialization, security, HTTP, or anything labelled `type: breaking`.
 
-  When a pull request touches files of several tiers, the highest one wins. The tier is also computed from the changed
-  paths by the "Risk tier" workflow (`.github/workflows/risk-tier.yml`) and set as a `risk-tier: T0`, `risk-tier: T1`
-  or `risk-tier: T2` label. Its `risk-tier` check fails when the declared tier is lower than the computed one. By default, tests,
-  docs, test suites, build logic and synced files are T0, `gradle/libs.versions.toml` is T1 because a version bump can
-  change published dependencies, and everything else is T1. A repository lists its T2 paths, and optionally extra T0
-  paths, in `.github/risk-tiers.yml`, which is not synced:
+  The "Risk tier" workflow (`.github/workflows/risk-tier.yml`) classifies every pull request with
+  [TypeSafe's Jev model](https://docs.typesafe.ai) and sets a `risk-tier: T0`, `risk-tier: T1` or `risk-tier: T2`
+  label. Jev gets the title, description, labels, changed file names with their line counts, and the repository's T2
+  areas, never the code, and returns a probability per tier. The workflow takes the highest tier with at least a 25%
+  probability, so an unsure answer rounds up. Its `risk-tier` check fails when the declared tier is lower than the
+  classified one, and when Jev cannot be reached or the `TYPESAFE_API_KEY` organisation secret is missing: it never
+  guesses a tier. The workflow summary names the model version and also shows the tier that path rules alone give
+  (tests, docs, build logic and synced files T0, everything else T1).
+
+  Some changes are T2 whatever Jev answers: a `type: breaking` label, "API or behaviour change: yes", or a changed file
+  in the repository's T2 areas. A repository lists those, and optionally extra T0 paths for the path-rule hint, in
+  `.github/risk-tiers.yml`, which is not synced:
 
   ```yaml
   t2:
@@ -127,13 +133,13 @@ A row that still lists several options, or is missing, counts as not declared.
     - "benchmarks/**"
   ```
 
-  A file matching a `t2` glob is T2 even when the default map would make it T0, so prefer `src/main` globs over whole
-  module directories.
+  Prefer `src/main` globs over whole module directories, since a test change under a `t2` glob also becomes T2.
+  `python3 .github/scripts/risk-tier.py replay <owner/repo> --since <date>` classifies past pull requests without
+  labelling them, and `--rules-only` uses the path rules instead of Jev, to compare.
 
-  The labels are the classification of record, and the computed tier is only a first guess: a script cannot see
-  every risk in a change. The AI reviewer double-checks it, and to reclassify a pull request the reviewer or a
-  maintainer just relabels it, up or down. The workflow keeps any `risk-tier:` or `ai-use:` label that someone else
-  added and only replaces its own.
+  The labels are the classification of record, and Jev's tier is only a first guess. The AI reviewer double-checks
+  it, and to reclassify a pull request the reviewer or a maintainer just relabels it, up or down. The workflow keeps
+  any `risk-tier:` or `ai-use:` label that someone else added and only replaces its own.
 * **API or behaviour change**: `yes` when public API or user-visible behaviour changes. `yes` means T2.
 
 Every pull request gets an AI first pass before human review, reported as the "AI first pass" check. The AI reviewer

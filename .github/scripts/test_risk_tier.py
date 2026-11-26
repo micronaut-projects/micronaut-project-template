@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Unit tests for risk-tier.py. Run with: python3 .github/scripts/test_risk_tier.py"""
 import importlib.util
+import json
 import os
 import sys
 import unittest
@@ -153,6 +154,128 @@ class ComputeTest(unittest.TestCase):
 
     def test_undeclared_is_not_too_low(self):
         self.assertFalse(rt.compute(["a/src/main/A.java"], set(), "", EMPTY)["declared_too_low"])
+
+
+def jev(choice, t0=0.0, t1=0.0, t2=0.0, confidence=0.9):
+    return {"choice": choice, "probabilities": {"T0": t0, "T1": t1, "T2": t2}, "confidence": confidence,
+            "model": "jev-test"}
+
+
+class JevTest(unittest.TestCase):
+    def test_choice_sets_tier(self):
+        result = rt.compute(["a/src/main/A.java"], set(), body(tier="T0"), EMPTY, jev("T0", t0=0.9, t1=0.1))
+        self.assertEqual(result["tier"], "T0")
+        self.assertEqual(result["rules_tier"], "T1")
+        self.assertFalse(result["declared_too_low"])
+
+    def test_unsure_answer_rounds_up(self):
+        self.assertEqual(rt.jev_tier(jev("T0", t0=0.6, t1=0.3, t2=0.1)), "T1")
+        self.assertEqual(rt.jev_tier(jev("T1", t0=0.2, t1=0.5, t2=0.3)), "T2")
+
+    def test_choice_without_probabilities(self):
+        self.assertEqual(rt.jev_tier({"choice": "T1", "confidence": 0.8}), "T1")
+
+    def test_unknown_choice_fails(self):
+        with self.assertRaises(ValueError):
+            rt.jev_tier({"choice": "medium"})
+
+    def test_repository_t2_area_cannot_be_lowered(self):
+        result = rt.compute(["inject/src/main/java/A.java"], set(), "", CORE, jev("T0", t0=1.0))
+        self.assertEqual(result["tier"], "T2")
+
+    def test_breaking_label_cannot_be_lowered(self):
+        self.assertEqual(rt.compute(["README.md"], {"type: breaking"}, "", EMPTY, jev("T0", t0=1.0))["tier"], "T2")
+
+    def test_declared_api_change_cannot_be_lowered(self):
+        self.assertEqual(rt.compute(["README.md"], set(), body(api="yes"), EMPTY, jev("T0", t0=1.0))["tier"], "T2")
+
+    def test_state(self):
+        files = [{"filename": "inject/src/main/java/A.java", "status": "modified", "additions": 3, "deletions": 1},
+                 {"filename": "README.md", "status": "added", "additions": 10, "deletions": 0}]
+        state = rt.jev_state("Fix A", "Body<!-- hidden -->", {"type: bug"}, files, CORE)
+        self.assertEqual(state["description"], "Body")
+        self.assertEqual([f["path_rule_tier"] for f in state["changed_files"]], ["T2", "T0"])
+        self.assertEqual(state["repository_t2_areas"], CORE["t2"])
+        self.assertNotIn("changed_files_note", state)
+
+    def test_state_is_bounded(self):
+        files = [{"filename": f"f{i}.java"} for i in range(rt.JEV_MAX_FILES + 5)]
+        state = rt.jev_state("t", "x" * (rt.JEV_MAX_BODY + 10), set(), files, EMPTY)
+        self.assertEqual(len(state["changed_files"]), rt.JEV_MAX_FILES)
+        self.assertEqual(state["total_changed_files"], rt.JEV_MAX_FILES + 5)
+        self.assertTrue(state["description"].endswith("[truncated]"))
+
+    def test_ask_jev_request(self):
+        sent = {}
+
+        class Response:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+            def read(self):
+                return json.dumps({"model": "jev-1.14.0", "answers": {"tier": {
+                    "type": "choice", "choice": "T1", "probabilities": {"T0": 0.1, "T1": 0.8, "T2": 0.1},
+                    "confidence": 0.8}}}).encode()
+
+        def opener(request, timeout):
+            sent["url"] = request.full_url
+            sent["auth"] = request.get_header("Authorization")
+            sent["body"] = json.loads(request.data)
+            return Response()
+
+        answer = rt.ask_jev({"title": "t"}, "key", opener=opener)
+        self.assertEqual((answer["choice"], answer["model"]), ("T1", "jev-1.14.0"))
+        self.assertEqual(sent["url"], rt.JEV_URL)
+        self.assertEqual(sent["auth"], "Bearer key")
+        self.assertEqual(sent["body"]["questions"]["tier"]["type"], "choice")
+        self.assertEqual(sorted(sent["body"]["questions"]["tier"]["criteria"]), list(rt.TIERS))
+
+    def test_retries_rate_limit(self):
+        import io
+        import urllib.error
+        calls = []
+
+        class Response:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+            def read(self):
+                return b'{"answers": {"tier": {"choice": "T0"}}}'
+
+        def opener(request, timeout):
+            calls.append(1)
+            if len(calls) == 1:
+                raise urllib.error.HTTPError(rt.JEV_URL, 429, "slow down", {"retry-after": "0"}, io.BytesIO(b""))
+            return Response()
+
+        self.assertEqual(rt.ask_jev({}, "key", opener=opener)["choice"], "T0")
+        self.assertEqual(len(calls), 2)
+
+    def test_error_fails(self):
+        import io
+        import urllib.error
+
+        def opener(request, timeout):
+            raise urllib.error.HTTPError(rt.JEV_URL, 401, "bad key", {}, io.BytesIO(b"invalid key"))
+
+        with self.assertRaisesRegex(RuntimeError, "401"):
+            rt.ask_jev({}, "key", opener=opener)
+
+    def test_missing_key_fails(self):
+        with self.assertRaises(RuntimeError):
+            rt.ask_jev({}, None)
+
+    def test_summary_names_the_model(self):
+        result = rt.compute(["a/src/main/A.java"], set(), "", EMPTY, jev("T1", t1=0.9, t0=0.1))
+        text = rt.summary(result, [])
+        self.assertIn("jev-test", text)
+        self.assertIn("path rules alone give T1", text)
 
 
 def labeled(name, login):
