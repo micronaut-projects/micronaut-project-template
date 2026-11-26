@@ -281,8 +281,18 @@ jobs:
             exit 0
           fi
 
-          echo "Waiting for required checks..."
-          if gh pr checks "${PR_URL}" --required --watch --fail-fast --interval 30; then
+          # Most repositories have no required checks, and then `gh pr checks --required` fails at once with "no
+          # required checks reported", which left every sync pull request open. Wait for the required checks when
+          # the branch has any, and for all checks otherwise.
+          required_count="$(gh pr checks "${PR_URL}" --required --json name --jq 'length' 2>/dev/null || echo 0)"
+          scope=()
+          if [ "${required_count:-0}" -gt 0 ]; then
+            scope=(--required)
+            echo "Waiting for ${required_count} required checks..."
+          else
+            echo "No required checks on this branch; waiting for all checks..."
+          fi
+          if gh pr checks "${PR_URL}" "${scope[@]}" --watch --fail-fast --interval 30; then
             echo "Checks passed; merging ${PR_URL}."
             # The merge can still be refused, e.g. when the target repository requires
             # checks that gh does not consider "required", or when the head moved.
@@ -296,6 +306,9 @@ jobs:
             else
               echo "${merge_log}"
               case "${merge_log}" in
+                *"review"*)
+                  echo "${PR_URL} needs an approving review that micronaut-build cannot give; leaving it open. Add micronaut-build to the bypass list of the repository's pull request rule to merge sync pull requests automatically."
+                  ;;
                 *"not mergeable"*|*"not in the correct state"*|*"head commit"*|*"has changed"*)
                   echo "${PR_URL} cannot be merged right now; leaving it open for a maintainer."
                   ;;
