@@ -8,6 +8,7 @@ on:
       - ".github/PULL_REQUEST_TEMPLATE.md"
   pull_request:
     paths:
+      - ".github/workflows/risk-tier-tests.yml"
       - ".github/scripts/risk-tier.py"
       - ".github/scripts/test_risk_tier.py"
       - ".github/PULL_REQUEST_TEMPLATE.md"
@@ -24,3 +25,36 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: "🧪 Run the tests"
         run: python3 .github/scripts/test_risk_tier.py -v
+
+  live-jev:
+    # Classifies this pull request with the real Jev API, without changing labels, so that a change to the request
+    # format fails here before it reaches every repository. Fork pull requests get no secrets, so it only runs for
+    # branches of this repository.
+    if: >-
+      github.repository == 'micronaut-projects/micronaut-project-template' &&
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: "📥 Checkout repository"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: "🏷 Classify this pull request with Jev"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+        run: python3 .github/scripts/risk-tier.py --config .github/risk-tiers.yml event --dry-run
+      - name: "📊 Replay merged pull requests (temporary)"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+        run: |
+          for repo in serialization security; do
+            python3 .github/scripts/risk-tier.py --config /dev/null replay "micronaut-projects/micronaut-$repo" \
+              --since 2026-10-28 --until 2026-11-25 > "replay-$repo.json"
+            python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(sys.argv[1], d['counts'])" "replay-$repo.json"
+          done
+      - name: "📦 Upload replay results"
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: jev-replay
+          path: replay-*.json
