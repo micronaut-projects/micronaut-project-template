@@ -595,6 +595,24 @@ def workflow_tier(events, labels, workflow_actor=WORKFLOW_ACTOR):
     return None
 
 
+def apply_override(result, tier_override, paths):
+    """Applies a tier label that a reviewer or maintainer set, up or down, except below T2 for a pull request that
+    changes the rules, the classifier or its workflow: those stay T2 whoever relabels them, so that nothing that
+    treats lower tiers more lightly, such as auto-merge, can be reached by changing how tiers are computed."""
+    if not tier_override or tier_override == result["tier"]:
+        return result
+    if tier_override != "T2" and any(matches_any(path, CLASSIFIER_PATHS) for path in paths):
+        result["reasons"].append(f"relabelled {tier_override}, which is ignored: changes to the risk tier rules or "
+                                 f"classifier are always T2")
+        return result
+    result["override"] = tier_override
+    result["reasons"].append(f"relabelled {tier_override} by a reviewer or maintainer")
+    result["tier"] = tier_override
+    declared = result["declaration"]["risk_tier"]
+    result["declared_too_low"] = declared is not None and TIERS.index(declared) < TIERS.index(tier_override)
+    return result
+
+
 def relabelled(events, labels, family, workflow_actor=WORKFLOW_ACTOR):
     """Returns the key of the label of ``family`` that someone other than this workflow put on the pull request, or None.
 
@@ -800,8 +818,8 @@ def run_event(args):
             print(f"::warning::Could not read Jev's last answer, so Jev is asked again: {error}")
     # A burst of pushes costs one call: the workflow cancels this run when another push arrives during the wait.
     wait = rules["jev"].get("debounce_seconds", 0) if event.get("action") == "synchronize" and not args.dry_run else 0
-    result = classify(pull_request, labels, github.changed_files(number), rules, previous=previous, cache=cache,
-                      wait=wait)
+    files = github.changed_files(number)
+    result = classify(pull_request, labels, files, rules, previous=previous, cache=cache, wait=wait)
     if state_path and result.get("cache"):
         os.makedirs(state_dir, exist_ok=True)
         with open(state_path, "w", encoding="utf-8") as state_file:
@@ -809,13 +827,7 @@ def run_event(args):
         if os.environ.get("GITHUB_OUTPUT"):
             with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
                 output.write("save-state=true\n")
-    tier_override = relabelled(events, labels, TIER_LABELS)
-    if tier_override and tier_override != result["tier"]:
-        result["override"] = tier_override
-        result["reasons"].append(f"relabelled {tier_override} by a reviewer or maintainer")
-        result["tier"] = tier_override
-        declared = result["declaration"]["risk_tier"]
-        result["declared_too_low"] = declared is not None and TIERS.index(declared) < TIERS.index(tier_override)
+    apply_override(result, relabelled(events, labels, TIER_LABELS), changed_paths(files))
     wanted = {TIER_LABELS[result["tier"]]}
     ai_use = relabelled(events, labels, AI_LABELS) or result["declaration"]["ai_use"]
     if ai_use:

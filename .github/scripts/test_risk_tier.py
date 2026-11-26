@@ -119,6 +119,17 @@ class RulesTest(unittest.TestCase):
         self.assertEqual(result["tier"], "T2")
         self.assertEqual(rt.file_tier(".github/workflows/ci.yml", loose), "T0")
 
+    def test_relabelling_cannot_lower_rule_changes(self):
+        def fresh(paths):
+            return rt.compute(paths, set(), "", EMPTY, jev("T2", t2=1.0))
+        rules_change = fresh([".github/risk-tiers.toml"])
+        self.assertEqual(rt.apply_override(rules_change, "T0", [".github/risk-tiers.toml"])["tier"], "T2")
+        self.assertIn("ignored", rules_change["reasons"][-1])
+        other = fresh(["a/src/main/A.java"])
+        self.assertEqual(rt.apply_override(other, "T0", ["a/src/main/A.java"])["tier"], "T0")
+        renamed = fresh(["x.toml"])
+        self.assertEqual(rt.apply_override(renamed, "T1", ["x.toml", ".github/workflows/risk-tier.yml"])["tier"], "T2")
+
     def test_bot_authors(self):
         self.assertEqual(rt.bot_author({"login": "renovate[bot]", "type": "Bot"}, EMPTY), "renovate[bot]")
         self.assertEqual(rt.bot_author({"login": "dependabot[bot]"}, EMPTY), "dependabot[bot]")
