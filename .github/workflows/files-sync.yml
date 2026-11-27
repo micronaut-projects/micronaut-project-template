@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       project_slug:
-        description: 'Project slug without the micronaut- prefix. Leave empty to sync every project.'
+        description: 'Repository name, with or without the micronaut- prefix. Leave empty to sync every project.'
         required: false
         type: string
   schedule:
@@ -31,24 +31,29 @@ jobs:
             azure
             cache
             cassandra
+            cdk
             chatbots
             coherence
             control-panel
             core
             crac
             data
+            data-nitrite
             discovery-client
+            docs
             eclipsestore
             elasticsearch
             email
             flyway
             fuzzing
             gcp
+            graal-languages
+            gradle-plugin
             graphql
             groovy
-            graal-languages
             grpc
             guice
+            guides-sdk
             hibernate-validator
             jackson-xml
             jakarta-el
@@ -67,14 +72,18 @@ jobs:
             mongodb
             mqtt
             multitenancy
+            mutiny
             nats
             neo4j
+            netty-native
             object-storage
             openapi
             openrewrite
             opensearch
             oracle-cloud
+            oracledb
             picocli
+            pkl
             platform
             problem-json
             projectgen
@@ -85,6 +94,7 @@ jobs:
             redis
             rss
             rxjava3
+            scala
             security
             serialization
             servlet
@@ -92,20 +102,34 @@ jobs:
             sourcegen
             spring
             sql
+            sql-client
             test
+            test-internal
             test-resources
             toml
             tracing
+            upgrade
+            vaadin
             validation
             views
           )
+          # Repositories whose name does not start with micronaut-.
+          other_repos=(
+            errorprone-no-reflection
+            pyronaut
+          )
+          full_names=()
+          for repo in "${repos[@]}"; do
+            full_names+=("micronaut-${repo}")
+          done
+          full_names+=("${other_repos[@]}")
 
           slug="${{ github.event.inputs.project_slug }}"
 
           if [ -n "${slug}" ]; then
-            for repo in "${repos[@]}"; do
-              if [ "${repo}" = "${slug}" ]; then
-                printf 'repos=["%s"]\n' "${slug}" >> "${GITHUB_OUTPUT}"
+            for repo in "${full_names[@]}"; do
+              if [ "${repo}" = "${slug}" ] || [ "${repo}" = "micronaut-${slug}" ]; then
+                printf 'repos=["%s"]\n' "${repo}" >> "${GITHUB_OUTPUT}"
                 exit 0
               fi
             done
@@ -115,7 +139,7 @@ jobs:
           fi
 
           json="["
-          for repo in "${repos[@]}"; do
+          for repo in "${full_names[@]}"; do
             if [ "${json}" != "[" ]; then
               json+=","
             fi
@@ -142,7 +166,7 @@ jobs:
       - name: Checkout target - default branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          repository: micronaut-projects/micronaut-${{ matrix.repo }}
+          repository: micronaut-projects/${{ matrix.repo }}
           path: target
           fetch-depth: 0
           token: ${{ secrets.GH_TOKEN }}
@@ -255,7 +279,7 @@ jobs:
       - name: Sync rulesets
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          REPO: micronaut-projects/micronaut-${{ matrix.repo }}
+          REPO: micronaut-projects/${{ matrix.repo }}
         run: source/.github/scripts/sync-rulesets.sh "$REPO" source/.github/rulesets.json
         shell: bash
       # Last, so that a failure here never holds back the files pull request or the rulesets.
@@ -263,6 +287,6 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          REPO: micronaut-projects/micronaut-${{ matrix.repo }}
+          REPO: micronaut-projects/${{ matrix.repo }}
         run: source/.github/scripts/sync-labels.sh "$REPO" source/.github/labels.json
         shell: bash
