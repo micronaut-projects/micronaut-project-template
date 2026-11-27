@@ -317,7 +317,8 @@ synced to every repository of the organisation that is not archived: every night
 applies the shared rulesets and labels to each one, changing them directly rather than through a pull request. Run it
 by hand for one repository, or with "dry run" to see what it would change. A repository opts out with the topic
 `org-sync-no-rulesets` or `org-sync-no-labels`, which only its admins can set. The temporary private forks of security
-advisories (`*-ghsa-*`) are always skipped.
+advisories (`*-ghsa-*`) are always skipped, and private repositories get no rulesets, because GitHub's Free plan has no
+branch rules for them.
 
 Labels: `.github/labels.json` in the template repo lists each
 shared label with its colour and description. Every run creates the missing ones and updates the colour and description
@@ -341,7 +342,9 @@ rulesets:
 
 Organisation and repository admins can bypass all three. These are the only branch rules: the sync deletes every other
 ruleset of a repo and every classic branch protection rule, so a rule added by hand in one repo is gone the next
-night. Change the rules in `rulesets.json` instead. Managing rulesets needs admin on the repo, so the `GH_TOKEN` of the
+night. So that a repo never loses its required checks, it keeps its old rules while one of them requires status checks
+and "Micronaut required checks" does not apply yet. A repo with its own CI gets there by adding a job named
+`Java CI passed` to its `gradle.yml`. Change the rules in `rulesets.json` instead. Managing rulesets needs admin on the repo, so the `GH_TOKEN` of the
 sync needs it in every repository.
 
 ## Releases
