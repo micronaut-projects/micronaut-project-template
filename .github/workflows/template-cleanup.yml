@@ -39,6 +39,8 @@ jobs:
           git mv buildSrc/src/main/groovy/io.micronaut.build.internal.project-template-base.gradle "buildSrc/src/main/groovy/io.micronaut.build.internal.${GITHUB_REPOSITORY:29}-base.gradle"
           # Remove clean up template
           rm -rf  .github/workflows/template-cleanup.yml
+          # The shared Renovate rules live only in the template
+          rm -f .github/renovate-global.json
 
       # Save modified files
       - name: Create cleanup patch
