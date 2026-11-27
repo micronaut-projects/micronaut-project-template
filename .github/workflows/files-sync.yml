@@ -40,7 +40,6 @@ jobs:
             data
             data-nitrite
             discovery-client
-            docs
             eclipsestore
             elasticsearch
             email
@@ -48,7 +47,6 @@ jobs:
             fuzzing
             gcp
             graal-languages
-            gradle-plugin
             graphql
             groovy
             grpc
@@ -116,7 +114,6 @@ jobs:
           # Repositories whose name does not start with micronaut-.
           other_repos=(
             errorprone-no-reflection
-            pyronaut
           )
           full_names=()
           for repo in "${repos[@]}"; do
