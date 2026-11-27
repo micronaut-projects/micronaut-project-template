@@ -1,0 +1,83 @@
+name: Org sync
+# Applies the shared branch rulesets (.github/rulesets.json) and labels (.github/labels.json) to every repository of
+# the organisation that is not archived, whether or not files-sync.yml syncs its files. The rulesets sync also deletes
+# every other repository ruleset and classic branch protection rule, so that the same merge requirements hold
+# everywhere. A repository opts out with the topic org-sync-no-rulesets or org-sync-no-labels, which only its admins
+# can set. Rulesets are skipped in private repositories, which GitHub's Free plan cannot protect. The temporary private
+# forks of security advisories (*-ghsa-*), where micronaut-build is not admin, are skipped. See "Org sync" in
+# MAINTAINING.md.
+on:
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: 'Repository name, such as micronaut-core. Leave empty for every repository.'
+        required: false
+        type: string
+      dry_run:
+        description: 'Only print what would change.'
+        required: false
+        type: boolean
+        default: true
+  schedule:
+    - cron: '0 3 * * *'
+      timezone: 'Europe/Madrid'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: org-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.repository == 'micronaut-projects/micronaut-project-template'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Sync rulesets and labels
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          ORG: ${{ github.repository_owner }}
+          ONLY: ${{ inputs.repository }}
+          DRY_RUN: ${{ inputs.dry_run && '--dry-run' || '' }}
+        run: |
+          set -uo pipefail
+          summary="${GITHUB_STEP_SUMMARY:-/dev/null}"
+          # One line per repository: its name, its visibility, then the topics it has.
+          repos="$(gh api --paginate "orgs/${ORG}/repos?type=all&per_page=100" \
+            --jq '.[] | select(.archived | not) | select(.name | test("-ghsa-") | not)
+              | ([.name, .visibility] + .topics) | join(" ")')" || { echo "::error::Could not list repositories."; exit 1; }
+          if [ -n "${ONLY}" ]; then
+            repos="$(awk -v n="${ONLY}" '$1 == n' <<< "${repos}")"
+            [ -n "${repos}" ] || { echo "::error::No repository ${ONLY} to sync."; exit 1; }
+          fi
+
+          failed=()
+          count=0
+          while read -r repo visibility topics; do
+            count=$((count + 1))
+            echo "::group::${repo}"
+            if [ "${visibility}" != "public" ]; then
+              echo "Skipping rulesets: the organisation's plan has no branch rules for ${visibility} repositories"
+            elif [[ " ${topics} " == *" org-sync-no-rulesets "* ]]; then
+              echo "Skipping rulesets: the repository has the topic org-sync-no-rulesets"
+            elif ! .github/scripts/sync-rulesets.sh "${ORG}/${repo}" .github/rulesets.json --prune ${DRY_RUN} < /dev/null; then
+              failed+=("${repo} (rulesets)")
+            fi
+            if [[ " ${topics} " == *" org-sync-no-labels "* ]]; then
+              echo "Skipping labels: the repository has the topic org-sync-no-labels"
+            elif ! .github/scripts/sync-labels.sh "${ORG}/${repo}" .github/labels.json ${DRY_RUN} < /dev/null; then
+              failed+=("${repo} (labels)")
+            fi
+            echo "::endgroup::"
+          done <<< "${repos}"
+
+          echo "Synced ${count} repositories ${DRY_RUN:+(dry run)}" >> "${summary}"
+          if [ "${#failed[@]}" -gt 0 ]; then
+            printf '\nFailed: %s\n' "${failed[*]}" >> "${summary}"
+            echo "::error::Org sync failed for ${failed[*]}"
+            exit 1
+          fi
