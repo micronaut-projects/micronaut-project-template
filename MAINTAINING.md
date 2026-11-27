@@ -290,8 +290,8 @@ of existing ones in each repo. A label can list `aliases`, such as GitHub's defa
 found in a repo is renamed to the shared label, or, when both exist, its issues and pull requests get the shared label
 and the alias is deleted. Other repo-specific labels are left alone. To rename a shared label, change its `name` and
 add the old name to its `aliases`. `labels.json` itself is not copied to other repos; the sync runs
-`.github/scripts/sync-labels.sh`, which takes `--dry-run`. It runs after the pull request and the rulesets, so a
-failure never holds them back, and retries each GitHub call three times before failing.
+`.github/scripts/sync-labels.sh`, which takes `--dry-run`. It runs after the pull request, so a
+failure never holds it back, and retries each GitHub call three times before failing.
 
 The sync opens an "Update common files" pull request in each repo. Every hour, `sync-automerge.yml` in the template repo
 squash-merges each one that targets the default branch and whose checks passed, whatever its risk tier: the required
@@ -299,8 +299,10 @@ checks when the branch has any, all checks otherwise. Pull requests with failing
 (for example one requiring an approving review that micronaut-build cannot bypass), stay open for a maintainer, and the
 run's summary lists them.
 
-Branch protection is synced like labels, from `.github/rulesets.json` in the template repo (not copied) through
-`.github/scripts/sync-rulesets.sh`, which also takes `--dry-run`. Each run creates or updates three repository rulesets:
+Branch protection is the same in every repository of the organisation that is not archived, including those whose
+files are not synced. Every night, `rulesets-sync.yml` in the template repo applies `.github/rulesets.json` (not
+copied) through `.github/scripts/sync-rulesets.sh`, which takes `--prune` and `--dry-run`. Run the workflow by hand
+for one repository or with "dry run" to see what it would change. It creates or updates three repository rulesets:
 
 * "Micronaut branches" blocks deleting and force-pushing the default branch and every `x.y.x` branch.
 * "Micronaut required checks" requires `Java CI passed` and `license/cla` on the default branch. `Java CI passed` is
@@ -310,9 +312,10 @@ Branch protection is synced like labels, from `.github/rulesets.json` in the tem
 * "Micronaut review policy" requires the `review-policy` check (see "Review policy") on the default branch, once the
   repo's `risk-tier.yml` has that job. The check passes in repos that do not enforce the policy.
 
-Organisation and repository admins can bypass all three. Other rulesets and classic branch protection rules of a repo are
-left alone, and the strictest rule applies. Managing rulesets needs admin on the repo, so the `GH_TOKEN` of the files
-sync needs it too.
+Organisation and repository admins can bypass all three. These are the only branch rules: the sync deletes every other
+ruleset of a repo and every classic branch protection rule, so a rule added by hand in one repo is gone the next
+night. Change the rules in `rulesets.json` instead. Managing rulesets needs admin on the repo, so the `GH_TOKEN` of the
+sync needs it in every repository.
 
 Regarding the Gradle wrapper, the template repo checks every week if there is a new Gradle version. If there is, it will
 upgrade the wrapper in the template repo itself, and via the files sync workflow this gets propagated to all repos. This
