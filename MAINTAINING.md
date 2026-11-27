@@ -284,35 +284,11 @@ template repo will get propagated automatically. The files propagated are:
   `MAINTAINING.md`, `config/HEADER` and `config/spotless.license.java`.
 * Checkstyle's `config/checkstyle/checkstyle.xml` and `config/checkstyle/suppressions.xml`.
 
-The same workflow also syncs issue and pull request labels. `.github/labels.json` in the template repo lists each
-shared label with its colour and description. Every run creates the missing ones and updates the colour and description
-of existing ones in each repo. A label can list `aliases`, such as GitHub's default `bug` for `type: bug`: an alias
-found in a repo is renamed to the shared label, or, when both exist, its issues and pull requests get the shared label
-and the alias is deleted. Other repo-specific labels are left alone. To rename a shared label, change its `name` and
-add the old name to its `aliases`. `labels.json` itself is not copied to other repos; the sync runs
-`.github/scripts/sync-labels.sh`, which takes `--dry-run`. It runs after the pull request and the rulesets, so a
-failure never holds them back, and retries each GitHub call three times before failing.
-
 The sync opens an "Update common files" pull request in each repo. Every hour, `sync-automerge.yml` in the template repo
 squash-merges each one that targets the default branch and whose checks passed, whatever its risk tier: the required
 checks when the branch has any, all checks otherwise. Pull requests with failing checks, or that a branch rule refuses
 (for example one requiring an approving review that micronaut-build cannot bypass), stay open for a maintainer, and the
 run's summary lists them.
-
-Branch protection is synced like labels, from `.github/rulesets.json` in the template repo (not copied) through
-`.github/scripts/sync-rulesets.sh`, which also takes `--dry-run`. Each run creates or updates three repository rulesets:
-
-* "Micronaut branches" blocks deleting and force-pushing the default branch and every `x.y.x` branch.
-* "Micronaut required checks" requires `Java CI passed` and `license/cla` on the default branch. `Java CI passed` is
-  the last job of the synced `gradle.yml`, and fails when any other Java CI job fails, so changing the JDK matrix never
-  breaks the rule. The ruleset is only applied once the repo's `gradle.yml` has that job, so a repo whose sync pull
-  request is not merged, or that keeps its own `gradle.yml`, is not blocked.
-* "Micronaut review policy" requires the `review-policy` check (see "Review policy") on the default branch, once the
-  repo's `risk-tier.yml` has that job. The check passes in repos that do not enforce the policy.
-
-Organisation and repository admins can bypass all three. Other rulesets and classic branch protection rules of a repo are
-left alone, and the strictest rule applies. Managing rulesets needs admin on the repo, so the `GH_TOKEN` of the files
-sync needs it too.
 
 Regarding the Gradle wrapper, the template repo checks every week if there is a new Gradle version. If there is, it will
 upgrade the wrapper in the template repo itself, and via the files sync workflow this gets propagated to all repos. This
@@ -333,6 +309,43 @@ aren't lost. When merging them, keep `gradle.yml` and `graalvm-latest.yml` in st
 reusable workflow, so taking only one of the two either stops the native tests or breaks Java CI.
 
 Note that it is perfectly possible to have new workflows that aren't part of the sync process.
+
+#### Org sync
+
+Files are only synced to the modules listed in `files-sync.yml`, which share the template's Gradle build. Settings are
+synced to every repository of the organisation that is not archived: every night, `org-sync.yml` in the template repo
+applies the shared rulesets and labels to each one, changing them directly rather than through a pull request. Run it
+by hand for one repository, or with "dry run" to see what it would change. A repository opts out with the topic
+`org-sync-no-rulesets` or `org-sync-no-labels`, which only its admins can set. The temporary private forks of security
+advisories (`*-ghsa-*`) are always skipped, and private repositories get no rulesets, because GitHub's Free plan has no
+branch rules for them.
+
+Labels: `.github/labels.json` in the template repo lists each
+shared label with its colour and description. Every run creates the missing ones and updates the colour and description
+of existing ones in each repo. A label can list `aliases`, such as GitHub's default `bug` for `type: bug`: an alias
+found in a repo is renamed to the shared label, or, when both exist, its issues and pull requests get the shared label
+and the alias is deleted. Other repo-specific labels are left alone. To rename a shared label, change its `name` and
+add the old name to its `aliases`. `labels.json` itself is not copied to other repos; the sync runs
+`.github/scripts/sync-labels.sh`, which takes `--dry-run` and retries each GitHub call three times before failing.
+
+Branch protection is synced from `.github/rulesets.json` in the template repo (not copied) through
+`.github/scripts/sync-rulesets.sh`, which takes `--prune` and `--dry-run`. It creates or updates three repository
+rulesets:
+
+* "Micronaut branches" blocks deleting and force-pushing the default branch and every `x.y.x` branch.
+* "Micronaut required checks" requires `Java CI passed` and `license/cla` on the default branch. `Java CI passed` is
+  the last job of the synced `gradle.yml`, and fails when any other Java CI job fails, so changing the JDK matrix never
+  breaks the rule. The ruleset is only applied once the repo's `gradle.yml` has that job, so a repo whose sync pull
+  request is not merged, or that keeps its own `gradle.yml`, is not blocked.
+* "Micronaut review policy" requires the `review-policy` check (see "Review policy") on the default branch, once the
+  repo's `risk-tier.yml` has that job. The check passes in repos that do not enforce the policy.
+
+Organisation and repository admins can bypass all three. These are the only branch rules: the sync deletes every other
+ruleset of a repo and every classic branch protection rule, so a rule added by hand in one repo is gone the next
+night. So that a repo never loses its required checks, it keeps its old rules while one of them requires status checks
+and "Micronaut required checks" does not apply yet. A repo with its own CI gets there by adding a job named
+`Java CI passed` to its `gradle.yml`. Change the rules in `rulesets.json` instead. Managing rulesets needs admin on the repo, so the `GH_TOKEN` of the
+sync needs it in every repository.
 
 ## Releases
 
