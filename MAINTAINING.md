@@ -300,7 +300,7 @@ checks when the branch has any, all checks otherwise. Pull requests with failing
 run's summary lists them.
 
 Branch protection is the same in every repository of the organisation that is not archived, including those whose
-files are not synced. Every night, `rulesets-sync.yml` in the template repo applies `.github/rulesets.json` (not
+files are not synced, except the temporary private forks of security advisories (`*-ghsa-*`). Every night, `rulesets-sync.yml` in the template repo applies `.github/rulesets.json` (not
 copied) through `.github/scripts/sync-rulesets.sh`, which takes `--prune` and `--dry-run`. Run the workflow by hand
 for one repository or with "dry run" to see what it would change. It creates or updates three repository rulesets:
 

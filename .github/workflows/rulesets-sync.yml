@@ -1,6 +1,7 @@
 name: Rulesets sync
 # Applies the shared branch rulesets in .github/rulesets.json to every repository of the organisation that is not
-# archived, whether or not files-sync.yml syncs its files, and deletes every other repository ruleset and classic branch
+# archived, whether or not files-sync.yml syncs its files (except the temporary private forks of security advisories,
+# *-ghsa-*, where micronaut-build is not admin), and deletes every other repository ruleset and classic branch
 # protection rule, so that the same merge requirements hold everywhere. See "Files sync" in MAINTAINING.md.
 on:
   workflow_dispatch:
@@ -46,7 +47,7 @@ jobs:
             repos="${ONLY}"
           else
             repos="$(gh api --paginate "orgs/${ORG}/repos?type=all&per_page=100" \
-              --jq '.[] | select(.archived | not) | .name')" || { echo "::error::Could not list repositories."; exit 1; }
+              --jq '.[] | select(.archived | not) | select(.name | test("-ghsa-") | not) | .name')" || { echo "::error::Could not list repositories."; exit 1; }
           fi
 
           failed=()
