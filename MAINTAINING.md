@@ -276,7 +276,8 @@ of existing ones in each repo. A label can list `aliases`, such as GitHub's defa
 found in a repo is renamed to the shared label, or, when both exist, its issues and pull requests get the shared label
 and the alias is deleted. Other repo-specific labels are left alone. To rename a shared label, change its `name` and
 add the old name to its `aliases`. `labels.json` itself is not copied to other repos; the sync runs
-`.github/scripts/sync-labels.sh`, which takes `--dry-run`.
+`.github/scripts/sync-labels.sh`, which takes `--dry-run`. It runs after the pull request and the rulesets, so a
+failure never holds them back, and retries each GitHub call three times before failing.
 
 The sync opens an "Update common files" pull request in each repo. Every hour, `sync-automerge.yml` in the template repo
 squash-merges each one that targets the default branch and whose checks passed, whatever its risk tier: the required
