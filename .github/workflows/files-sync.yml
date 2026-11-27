@@ -251,12 +251,4 @@ jobs:
             config/spotless.license.java
             config/checkstyle/checkstyle.xml
             config/checkstyle/suppressions.xml
-      # Rulesets are synced to every repository by rulesets-sync.yml.
-      # Last, so that a failure here never holds back the files pull request.
-      - name: Sync labels
-        if: ${{ !cancelled() }}
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          REPO: micronaut-projects/micronaut-${{ matrix.repo }}
-        run: source/.github/scripts/sync-labels.sh "$REPO" source/.github/labels.json
-        shell: bash
+      # Rulesets and labels are synced to every repository by org-sync.yml.
