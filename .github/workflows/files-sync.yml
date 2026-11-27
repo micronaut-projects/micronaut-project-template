@@ -26,10 +26,12 @@ jobs:
         run: |
           repos=(
             acme
+            agent-skills
             aot
             aws
             azure
             cache
+            camel
             cassandra
             cdk
             chatbots
@@ -39,6 +41,7 @@ jobs:
             crac
             data
             data-nitrite
+            datarest
             discovery-client
             eclipsestore
             elasticsearch
@@ -52,6 +55,7 @@ jobs:
             grpc
             guice
             guides-sdk
+            hateoas
             hibernate-validator
             jackson-xml
             jakarta-el
@@ -73,7 +77,6 @@ jobs:
             mutiny
             nats
             neo4j
-            netty-native
             object-storage
             openapi
             openrewrite
@@ -101,12 +104,12 @@ jobs:
             spring
             sql
             sql-client
+            supabase
             test
             test-internal
             test-resources
             toml
             tracing
-            upgrade
             vaadin
             validation
             views
