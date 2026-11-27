@@ -263,7 +263,9 @@ Renovate and our workflow will keep sending PRs. You should also create an issue
 
 We have a [template repo](https://github.com/micronaut-projects/micronaut-project-template) that we use as the single
 source of truth for certain files. It is used as a template to create new repos, and changes to certain files in the
-template repo will get propagated automatically. The files propagated are:
+template repo will get propagated automatically to every repository listed in `files-sync.yml`. Add a repository
+created from the template to that list, by its name without `micronaut-`, or under `other_repos` when its name does
+not start with `micronaut-`. The files propagated are:
 
 * Workflow files (`.github/workflows/*`). They are copied using rsync:
   * `central-sync.yml`.

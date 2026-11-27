@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       project_slug:
-        description: 'Project slug without the micronaut- prefix. Leave empty to sync every project.'
+        description: 'Repository name, with or without the micronaut- prefix. Leave empty to sync every project.'
         required: false
         type: string
   schedule:
@@ -26,17 +26,22 @@ jobs:
         run: |
           repos=(
             acme
+            agent-skills
             aot
             aws
             azure
             cache
+            camel
             cassandra
+            cdk
             chatbots
             coherence
             control-panel
             core
             crac
             data
+            data-nitrite
+            datarest
             discovery-client
             eclipsestore
             elasticsearch
@@ -44,11 +49,13 @@ jobs:
             flyway
             fuzzing
             gcp
+            graal-languages
             graphql
             groovy
-            graal-languages
             grpc
             guice
+            guides-sdk
+            hateoas
             hibernate-validator
             jackson-xml
             jakarta-el
@@ -67,6 +74,7 @@ jobs:
             mongodb
             mqtt
             multitenancy
+            mutiny
             nats
             neo4j
             object-storage
@@ -74,7 +82,9 @@ jobs:
             openrewrite
             opensearch
             oracle-cloud
+            oracledb
             picocli
+            pkl
             platform
             problem-json
             projectgen
@@ -85,6 +95,7 @@ jobs:
             redis
             rss
             rxjava3
+            scala
             security
             serialization
             servlet
@@ -92,20 +103,33 @@ jobs:
             sourcegen
             spring
             sql
+            sql-client
+            supabase
             test
+            test-internal
             test-resources
             toml
             tracing
+            vaadin
             validation
             views
           )
+          # Repositories whose name does not start with micronaut-.
+          other_repos=(
+            errorprone-no-reflection
+          )
+          full_names=()
+          for repo in "${repos[@]}"; do
+            full_names+=("micronaut-${repo}")
+          done
+          full_names+=("${other_repos[@]}")
 
           slug="${{ github.event.inputs.project_slug }}"
 
           if [ -n "${slug}" ]; then
-            for repo in "${repos[@]}"; do
-              if [ "${repo}" = "${slug}" ]; then
-                printf 'repos=["%s"]\n' "${slug}" >> "${GITHUB_OUTPUT}"
+            for repo in "${full_names[@]}"; do
+              if [ "${repo}" = "${slug}" ] || [ "${repo}" = "micronaut-${slug}" ]; then
+                printf 'repos=["%s"]\n' "${repo}" >> "${GITHUB_OUTPUT}"
                 exit 0
               fi
             done
@@ -115,7 +139,7 @@ jobs:
           fi
 
           json="["
-          for repo in "${repos[@]}"; do
+          for repo in "${full_names[@]}"; do
             if [ "${json}" != "[" ]; then
               json+=","
             fi
@@ -142,7 +166,7 @@ jobs:
       - name: Checkout target - default branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          repository: micronaut-projects/micronaut-${{ matrix.repo }}
+          repository: micronaut-projects/${{ matrix.repo }}
           path: target
           fetch-depth: 0
           token: ${{ secrets.GH_TOKEN }}
