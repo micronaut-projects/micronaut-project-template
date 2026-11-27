@@ -14,18 +14,47 @@ repo=$1
 labels_file=$2
 dry_run=${3:-}
 
+# GitHub's API sometimes answers 500 or 502 to a request that would otherwise succeed. Retries each call three times,
+# 15, 30 and 45 seconds apart, before giving up. A write whose failure hid a success fails on its retry instead, and
+# the next nightly run finds the work done.
+retry() {
+  local attempt=1
+  until "$@"; do
+    if [ "$attempt" -ge 4 ]; then
+      return 1
+    fi
+    echo "Retrying in $((15 * attempt))s: $*" >&2
+    sleep $((15 * attempt))
+    attempt=$((attempt + 1))
+  done
+}
+
+# Prints a read's whole output only once it succeeded, so a page that failed half way is never used.
+read_retry() {
+  local output attempt=1
+  until output=$("$@"); do
+    if [ "$attempt" -ge 4 ]; then
+      return 1
+    fi
+    echo "Retrying in $((15 * attempt))s: $*" >&2
+    sleep $((15 * attempt))
+    attempt=$((attempt + 1))
+  done
+  printf '%s\n' "$output"
+}
+
 run() {
   if [ "$dry_run" = "--dry-run" ]; then
     printf 'would run:'
     printf ' %q' "$@"
     printf '\n'
   else
-    "$@"
+    retry "$@"
   fi
 }
 
 # Label names are case-insensitive on GitHub: compare in lower case, act on the repo's spelling.
-existing=$(gh api --paginate "repos/$repo/labels?per_page=100" --jq '.[].name')
+existing=$(read_retry gh api --paginate "repos/$repo/labels?per_page=100" --jq '.[].name')
 find_label() {
   local wanted label
   wanted=$(tr '[:upper:]' '[:lower:]' <<<"$1")
@@ -50,7 +79,8 @@ while IFS=$'\t' read -r name alias; do
   else
     echo "Merging '$actual_alias' into '$name'"
     encoded=$(jq -rn --arg l "$actual_alias" '$l|@uri')
-    for number in $(gh api --paginate "repos/$repo/issues?labels=$encoded&state=all&per_page=100" --jq '.[].number'); do
+    numbers=$(read_retry gh api --paginate "repos/$repo/issues?labels=$encoded&state=all&per_page=100" --jq '.[].number')
+    for number in $numbers; do
       run gh api -X POST "repos/$repo/issues/$number/labels" -f "labels[]=$name" --silent
       # Stay under GitHub's secondary rate limit for writes; a run cut short resumes the next night.
       [ "$dry_run" = "--dry-run" ] || sleep 1
