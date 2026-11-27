@@ -224,7 +224,8 @@ All Micronaut repos have 2 dependency upgrade checking mechanism:
    GitHub Actions workflows. On the other hand, its biggest downside is that it's unable to find newer versions for
    those defined in `gradle.properties`. It will also send different PRs for the same version upgrade if the artifact ID
    is different. To keep that down, the shared rules group Gradle and Maven updates by kind: one
-   pull request for all patch updates, which merges itself once its checks pass, and one pull request per Maven group
+   pull request for all patch updates, which Renovate merges itself once every check on it has passed (`platformAutomerge`
+   is off, so a repository without required checks never merges before CI), and one pull request per Maven group
    ID for minor updates, so unrelated libraries never ship together. Those need a maintainer's review. Patch updates
    of 0.x versions go with the minor updates of their group ID. Major updates are also grouped per group ID, in pull
    requests separate from the minor ones, since a library family usually has to move to a new major at once.
