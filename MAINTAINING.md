@@ -320,11 +320,12 @@ applies the shared rulesets and labels to each one, changing them directly rathe
 by hand for one repository, or with "dry run" to see what it would change. A repository opts out with the topic
 `org-sync-no-rulesets` or `org-sync-no-labels`, which only its admins can set. The temporary private forks of security
 advisories (`*-ghsa-*`) are always skipped, and private repositories get no rulesets, because GitHub's Free plan has no
-branch rules for them.
+branch rules for them. When fewer than 500 calls of the token's hourly GitHub API quota are left, the run waits for it to
+reset, so it never uses up the quota that releases and the other syncs share.
 
 Labels: `.github/labels.json` in the template repo lists each
 shared label with its colour and description. Every run creates the missing ones and updates the colour and description
-of existing ones in each repo. A label can list `aliases`, such as GitHub's default `bug` for `type: bug`: an alias
+of existing ones in each repo when they differ. A label can list `aliases`, such as GitHub's default `bug` for `type: bug`: an alias
 found in a repo is renamed to the shared label, or, when both exist, its issues and pull requests get the shared label
 and the alias is deleted. Other repo-specific labels are left alone. To rename a shared label, change its `name` and
 add the old name to its `aliases`. `labels.json` itself is not copied to other repos; the sync runs

@@ -57,8 +57,20 @@ jobs:
 
           failed=()
           count=0
+          # Waits for the hourly API quota to reset when little is left, instead of failing the remaining repositories.
+          # The quota is shared with the files sync and the sync pull request merges, which use the same token.
+          wait_for_quota() {
+            local remaining reset
+            read -r remaining reset < <(gh api rate_limit --jq '.resources.core | "\(.remaining) \(.reset)"') || return 0
+            if [ "${remaining}" -lt 500 ]; then
+              echo "Only ${remaining} API calls left, waiting until the quota resets at $(date -u -d "@${reset}" +%H:%M) UTC"
+              sleep $(( reset > $(date +%s) ? reset - $(date +%s) + 10 : 10 ))
+            fi
+          }
+
           while read -r repo visibility topics; do
             count=$((count + 1))
+            wait_for_quota
             echo "::group::${repo}"
             if [ "${visibility}" != "public" ]; then
               echo "Skipping rulesets: the organisation's plan has no branch rules for ${visibility} repositories"
