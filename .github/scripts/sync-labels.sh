@@ -6,7 +6,7 @@
 # For each shared label, every alias found in the repository is merged into it first:
 # - if the shared label does not exist yet, the alias is renamed, which keeps it on its issues and pull requests;
 # - otherwise the shared label is added to each issue and pull request that has the alias, then the alias is deleted.
-# Then each shared label is created, or its colour and description are updated.
+# Then each shared label is created, or its colour and description are updated when they differ.
 # Labels that are neither shared nor an alias are left alone.
 set -euo pipefail
 
@@ -54,7 +54,9 @@ run() {
 }
 
 # Label names are case-insensitive on GitHub: compare in lower case, act on the repo's spelling.
-existing=$(read_retry gh api --paginate "repos/$repo/labels?per_page=100" --jq '.[].name')
+# One line per label: name, colour and description, so that unchanged labels need no write.
+current=$(read_retry gh api --paginate "repos/$repo/labels?per_page=100" --jq '.[] | [.name, .color, (.description // "")] | @tsv')
+existing=$(cut -f1 <<<"$current")
 find_label() {
   local wanted label
   wanted=$(tr '[:upper:]' '[:lower:]' <<<"$1")
@@ -91,5 +93,10 @@ done < <(jq -r '.[] | .name as $n | (.aliases // [])[] | [$n, .] | @tsv' "$label
 
 jq -r '.[] | [.name, .color, .description] | @tsv' "$labels_file" |
   while IFS=$'\t' read -r name color description; do
+    if awk -F '\t' -v n="$name" -v c="$color" -v d="$description" \
+      'tolower($1) == tolower(n) && $1 == n && tolower($2) == tolower(c) && $3 == d { found = 1 } END { exit !found }' \
+      <<<"$current"; then
+      continue
+    fi
     run gh label create "$name" --repo "$repo" --color "$color" --description "$description" --force
   done
